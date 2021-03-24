@@ -1,0 +1,30 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.MuiSlider-markLabel {
+  font-size: small!important
+}
+
+.MuiTypography-displayBlock {
+  font-size: small!important
+}
+
+.MuiListItem-root {
+  height: 5.6vh;
+  min-height: 5.6vh!important;
+}
+
+.MuiTypography-root {
+  font-size: small!important;
+}
