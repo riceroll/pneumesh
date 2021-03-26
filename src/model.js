@@ -59,9 +59,6 @@ class Edge {
 
 }
 
-
-
-
 class Model {
   static k = 200000;
   static h = 0.001;
@@ -141,25 +138,25 @@ class Model {
     // load a dictionary
     let v = [];
     let e = Array.from(data.e);
-    let f = Array.from(data.f);
-    let p = Array.from(data.p);
+    let f = [];
+    let p = [];
+    // f = Array.from(data.f);
+    // p = Array.from(data.p);
     for (let i=0; i<data.v.length; i++) {
       v.push(new thre.Vector3(data.v[i][0], data.v[i][1], data.v[i][2]));
     }
     this.reset();
-    if (data.lMax) {
-      let lMax = data.lMax;
-      let maxContraction = data.maxContraction;
-      let fixedVs = data.fixedVs;
-      let edgeChannel = data.edgeChannel;
-      let edgeActive = data.edgeActive;
-      this.loadData(v, e, f, p, lMax, maxContraction, fixedVs, edgeChannel, edgeActive);
-    }
-    else {
+    let lMax, maxContraction, fixedVs, edgeChannel, edgeActive
+    if (data.lMax) { lMax = data.lMax;}
+    if (data.maxContraction) {maxContraction = data.maxContraction;}
+    if (data.fixedVs)  {fixedVs = data.fixedVs;}
+    if (data.edgeChannel)  edgeChannel = data.edgeChannel;
+    if (data.edgeActive)  edgeActive = data.edgeActive;
+    this.loadData(v, e, f, p, lMax, maxContraction, fixedVs, edgeChannel, edgeActive);
+
+    if (!(data.lMax || data.maxContraction || data.fixedVs)) {
       this.loadData(v, e, f, p);
     }
-    this.resetSelection();
-    this.recordV();
   }
 
   loadData(v, e, f, p, lMax=null, maxContraction=null, fixedVs=null, edgeChannel=null, edgeActive=null, script=[]){
@@ -180,14 +177,6 @@ class Model {
       this.e.push([1, 3]);
       this.e.push([2, 3]);
     }
-    // rescale
-    let currentLm = this.v[0].distanceTo(this.v[1]) / (1 - Model.maxMaxContraction);
-    for (let i=0; i<this.v.length; i++) {
-      this.v[i].divideScalar(currentLm);
-      this.v[i].multiplyScalar(Model.defaultMaxLength);
-    }
-
-    this.recordV();
 
     if (fixedVs) this.fixedVs = fixedVs;
     if (lMax) this.lMax = lMax;
@@ -195,9 +184,12 @@ class Model {
     if (edgeActive) this.edgeActive = edgeActive;
     if (edgeChannel) this.edgeChannel = edgeChannel;
     if (script) this.script = script;
-    this.resetSelection();
 
     this.precompute();
+
+    this.initCheck();
+    this.resetSelection();
+    this.recordV();
   }
 
   saveData() {
@@ -297,6 +289,35 @@ class Model {
         }
       }
       this.script = newValue;
+    }
+
+  }
+
+  initCheck() {
+
+    // rescale
+    let minlMax = 1e5;
+    for (let i=0; i<this.e.length; i++) {
+      if (this.edgeActive[i]) {
+        if (this.l[i] < minlMax) {
+          minlMax = this.l[i];
+        }
+      }
+    }
+    console.log(`Minimum max length among active beams is ${minlMax}.`)
+    for (let i=0; i<this.v.length; i++) {
+      this.v[i].divideScalar(minlMax);
+      this.v[i].multiplyScalar(Model.defaultMaxLength);
+    }
+
+    // lMax check
+    for (let i=0; i<this.e.length; i++) {
+      if (this.edgeActive[i] || true) {
+        if (this.lMax[i] !== this.Model.defaultMaxLength) {
+          console.log(`An active beam is having wrong max length ${this.lMax[i]}.`)
+          this.lMax[i] = this.Model.defaultMaxLength;
+        }
+      }
     }
 
   }
@@ -489,17 +510,21 @@ class Model {
 
     this.updateDataStructure();
 
-    const ies = [];   // ids of edges to remove
+    const ees = [];   // edges to remove
 
     const v = Vertex.all[iJoint];
     for (let ee of v.es) {
-      ies.push(ee);
+      ees.push(ee);
     }
 
     Vertex.all = Vertex.all.filter(vv=>vv !== v);
-    Edge.all = Edge.all.filter(ee=>!ies.includes(ee));
+    Edge.all = Edge.all.filter(ee=>!ees.includes(ee));
+
+    Model.reindexObjects(Vertex)
+    Model.reindexObjects(Edge)
 
     this.updateFromDataStructure();
+    this.forceUpdate()
   }
 
   removeEdge(iEdge) {

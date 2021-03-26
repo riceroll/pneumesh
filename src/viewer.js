@@ -43,8 +43,12 @@ function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut,
   const prevPos = new THREE.Vector3();
 
   useFrame((state)=>{
+
+    if (mesh.current === null)  return;
+
     mesh.current.position.copy(v);
     material.current.color.copy(c);
+
 
     if (translating) {
       const controls = transControls.current;
@@ -198,6 +202,8 @@ function Cylinder({v0, v1, d, c, handleClick, handlePointerOver, handlePointerOu
   const [pos, l, euler] = update(v0, v1);
 
   useFrame((state)=>{
+    if (mesh.current === null)  return;
+
     const [pos, l, euler] = update(v0, v1);
     mesh.current.position.copy(pos);
     mesh.current.rotation.copy(euler);

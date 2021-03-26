@@ -89,6 +89,7 @@ function SettingActive({model, updateGUI}) {
           for (let ie = 0; ie < model.e.length; ie++) {
             if (model.eStatus[ie] === 2) {
               model.edgeActive[ie] = true;
+              model.lMax[ie] = model.Model.defaultMaxLength;
             }
           }
           updateGUI();
@@ -349,6 +350,9 @@ function GUI({model, options, sharedData}) {
                     model.Model.gravity = !model.editing;
                     model.simulate = true;
                     model.gravity = !model.editing;
+                    sharedData.movingJoint = false;
+                    sharedData.removingJoint = false;
+                    sharedData.addingJoint = false;
                     updateGUI();
                     if (model.editing) {
                       model.resetV();
@@ -389,7 +393,7 @@ function GUI({model, options, sharedData}) {
                 }
               }
             }}
-            onPointerOut={()=>{model.forceUpdate();}}
+            onPointerUp={()=>{model.forceUpdate();}}
           />
         </ListItem>
 
@@ -405,25 +409,23 @@ function GUI({model, options, sharedData}) {
                     (model.eStatus[ie]===2 && !model.edgeActive[ie]) || (model.eStatus[ie] !==2))) :
                   true
               }
-              defaultValue={model.Model.maxMaxContraction}
+              defaultValue={model.Model.defaultMinLength}
               aria-labelledby={"discrete-slider-custom"}
-              step={model.Model.contractionInterval}
-              min={0}
-              max={model.Model.maxMaxContraction}
+              step={model.Model.contractionInterval * model.Model.defaultMaxLength}
+              min={model.Model.defaultMinLength}
+              max={model.Model.defaultMaxLength}
               valueLabelDisplay={"auto"}
               // marks={marks}
               onChange={
                 (e, val)=>{
                   for (let i=0; i<model.e.length; i++) {
                     if (model.eStatus[i] === 2 && model.edgeActive[i] === false) {
-                      model.maxContraction[i] = val;
+                      model.lMax[i] = val;
                     }
                   }
-                  model.forceUpdate();
-
-
                 }
               }
+              onPointerUp={()=>{model.forceUpdate()}}
             />
         </ListItem>
 
@@ -657,8 +659,8 @@ function GUI({model, options, sharedData}) {
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
-              min={-Math.PI / 2}
-              max={Math.PI / 2}
+              min={-Math.PI}
+              max={Math.PI}
               valueLabelDisplay={"auto"}
               onChange={(e, val)=>{
                 model.rotate(val, model.euler.y, model.euler.z);
@@ -676,8 +678,8 @@ function GUI({model, options, sharedData}) {
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
-              min={-Math.PI / 2}
-              max={Math.PI / 2}
+              min={-Math.PI}
+              max={Math.PI}
               valueLabelDisplay={"auto"}
               onChange={(e, val)=>{
                 model.rotate(model.euler.x, val, model.euler.z);
@@ -694,8 +696,8 @@ function GUI({model, options, sharedData}) {
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
-              min={-Math.PI / 2}
-              max={Math.PI / 2}
+              min={-Math.PI}
+              max={Math.PI}
               valueLabelDisplay={"auto"}
               onChange={(e, val)=>{
                 model.rotate(model.euler.x, model.euler.y, val);
