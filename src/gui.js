@@ -554,13 +554,27 @@ function GUI({model, options, sharedData}) {
 
         <ListItem>
           <ListItemText>
-            Show Channel
+            Channel Color
           </ListItemText>
           <Switch
             i={1}
             checked={sharedData.showChannel}
             onChange={(e)=>{
               sharedData.showChannel = !sharedData.showChannel;
+              updateGUI();
+            }}
+          />
+        </ListItem>
+
+        <ListItem>
+          <ListItemText>
+            Length Info
+          </ListItemText>
+          <Switch
+            i={2}
+            checked={sharedData.showInfo}
+            onChange={(e)=>{
+              sharedData.showInfo = !sharedData.showInfo;
               updateGUI();
             }}
           />

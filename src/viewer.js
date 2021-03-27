@@ -202,7 +202,7 @@ function Cylinder({v0, v1, d, c, handleClick, handlePointerOver, handlePointerOu
   const [pos, l, euler] = update(v0, v1);
 
   useFrame((state)=>{
-    if (mesh.current === null)  return;
+    if (mesh.current === null)  return;   // TODO: why?
 
     const [pos, l, euler] = update(v0, v1);
     mesh.current.position.copy(pos);
@@ -307,10 +307,23 @@ function Beam({v0, v1, ie, model, sharedData
   const handlePointerOver = (e)=>{
     if (model.eStatus[ie] !== 2) {model.eStatus[ie] = 1;}
     e.stopPropagation();
+
+    if (sharedData.showInfo) sharedData.infoPanel.style.display = 'block';
+    sharedData.infoPanel.style.left = String(e.clientX) + 'px';
+    sharedData.infoPanel.style.top = String(e.clientY) + 'px';
+    while (sharedData.infoPanel.firstChild) sharedData.infoPanel.removeChild(sharedData.infoPanel.firstChild);
+    sharedData.infoPanel.appendChild(sharedData.infoPanel.ownerDocument.createTextNode(
+      "L: " + String(Math.round(model.l[ie] * 1000) / 1000 / 1.2 * 93 ) + "mm",
+    ));
+    sharedData.infoPanel.appendChild(sharedData.infoPanel.ownerDocument.createElement("br"));
+    sharedData.infoPanel.appendChild(sharedData.infoPanel.ownerDocument.createTextNode(
+      "S: " + String(Math.round(model.l[ie] * 1000) / 1000 / 1.2 * 62 ) + "mm",
+    ));
   }
   const handlePointerOut = (e)=>{
     if (model.eStatus[ie] !== 2) {model.eStatus[ie] = 0;}
     e.stopPropagation();
+    sharedData.infoPanel.style.display = "none";
   }
 
   const cylinders = [
@@ -333,7 +346,8 @@ function Beam({v0, v1, ie, model, sharedData
   else {
     return (
       [<Cylinder key="beam" v0={v0} v1={v1} d={dTube} c={cBeam}
-                handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>]
+                handleClick={handleClick} handlePointerOver={handlePointerOver}
+                 handlePointerOut={handlePointerOut}/>]
     )
   }
 
