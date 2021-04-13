@@ -14,10 +14,10 @@ const cHovered = "rgba(250, 250, 250, 0.9)";
 const cOff = "rgba(150, 150, 150, 1)";
 
 const cChannels = [
-  "rgb(100, 100, 200)",
-  "rgb(200, 200, 100)",
-  "rgb(100, 200, 100)",
-  "rgb(100, 200, 200)",
+  "rgb(100, 150, 220)",
+  "rgb(240, 240, 20)",
+  "rgb(200, 100, 200)",
+  "rgb(100, 200, 130)",
   "rgb(200, 100, 200)",
 ];
 
@@ -26,7 +26,7 @@ const heightBlock = 5;    // vh
 const paddingBlock = 1;   // vh
 const marginBlock = 0.5;     // vh
 const paddingBlocks = 0.5;
-const widthSlider = 30;
+const widthSlider = 20;
 const marginSlider = 0.1;
 const widthSliders = (widthSlider + marginSlider * 2);
 
@@ -62,8 +62,8 @@ const useStyles = makeStyles((theme) => ({
   editingScriptGUI: {
     position: "absolute",
     right: "30vh",
-    top: "40vh",
-    width: "40vh",
+    top: "44vh",
+    width: "30vh",
     background: cBackground,
   }
 }))
@@ -144,6 +144,8 @@ function SettingChannel({n, model, updateGUI}) {
         (model.eStatus[ie] !== 2) || ((model.eStatus[ie] === 2) && (model.edgeChannel[ie] !== i))
       ))
 
+    const color = cChannels[i];
+
     icons.push(
       <Grid key={i} item style={{width: `${1/n * 100}%`, textAlign: "center"}} >
         <IconButton
@@ -159,7 +161,7 @@ function SettingChannel({n, model, updateGUI}) {
             }
           }
         >
-          {checked? <RadioButtonChecked/> :  <RadioButtonUnchecked/>}
+          {checked? <RadioButtonChecked style={{"color": color}}/> :  <RadioButtonUnchecked style={{"color": color}}/>}
         </IconButton>
       </Grid>
     )
@@ -223,7 +225,7 @@ function Scripts({model, sharedData, updateGUI, classes}) {
               padding: `${paddingBlock}vh`,
               margin: `${marginBlock}vh`,
               border: `2px ${hovered?"solid":"none"} ${cHovered}`,
-              opacity: `${isOn?1:hovered?0.4:0.1}`
+              opacity: `${isOn?1:hovered?0.8:0.1}`
             }}
             onPointerOver={()=>{setHovered(true)}}
             onPointerOut={()=>{setHovered(false)}}
@@ -271,6 +273,7 @@ function GUI({model, options, sharedData}) {
   const [, updateGUI] = useReducer(x => x+1, 0);
   sharedData.updateGUI = updateGUI;
   window.updateGUI = updateGUI;
+  model.recordHistory();
 
   const classes = useStyles();
 

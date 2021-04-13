@@ -67,7 +67,7 @@ class Model {
   static contractionSteps = 4;
   static maxMaxContraction = Math.round(Model.contractionInterval * Model.contractionSteps * 100) /100;
   static contractionPercentRate = 5e-4 ;  // contraction percentage change ratio, per time step
-  static gravityFactor = 9.8;
+  static gravityFactor = 9.8 * 20;
   static gravity = 1;     // if gravity is on
   static defaultMinLength = 1.2;
   static defaultMaxLength = Model.defaultMinLength / (1 - Model.maxMaxContraction);
@@ -75,6 +75,9 @@ class Model {
   static numStepsAction = 2 / Model.h;
   static defaultNumActions = 1;
   static defaultNumChannels = 4;
+
+  static history = [];
+  static iHistory = -1;
 
   constructor() {
     this.viewer = null;
@@ -131,7 +134,6 @@ class Model {
     this.numActions = Model.defaultNumActions;
     this.inflateChannel = new Array(this.numChannels).fill(false);
     this.contractionPercent = new Array(this.numChannels).fill(1);  // contraction percentage of each channel, 0-1
-
   }
 
   loadDict(data) {
@@ -198,17 +200,139 @@ class Model {
     for (let v of this.v) {
       data.v.push([v.x, v.y, v.z]);
     }
-    data.e = this.e;
-    data.lMax = this.lMax;
-    data.maxContraction = this.maxContraction;
-    data.fixedVs =this.fixedVs;
-    data.edgeChannel = this.edgeChannel;
-    data.edgeActive = this.edgeActive;
+    data.v0 = [];
+    for (let v0 of this.v0) {
+      data.v0.push([v0.x, v0.y, v0.z]);
+    }
+
+    data.e = [];
+    for (let i=0; i<this.e.length; i++) {
+      data.e.push(this.e[i].slice());
+    }
+    data.fixedVs = this.fixedVs.slice();
+    data.lMax = this.lMax.slice();
+    data.edgeChannel = this.edgeChannel.slice();
+    data.edgeActive = this.edgeActive.slice();
+    data.script = [];
+    for (let i=0; i<this.script.length; i++) {
+      const actions = this.script[i].slice();
+      data.script.push(actions);
+    }
+
+    data.maxContraction = this.maxContraction.slice();
+    data.vStatus = this.vStatus.slice();
+    data.eStatus = this.eStatus.slice();
+    data.fStatus = this.fStatus.slice();
+
+    data.euler = this.euler.clone();
+
+    data.numChannels = this.numChannels;
+    data.numActions = this.numActions;
+    data.inflateChannel = this.inflateChannel.slice();
+    data.contractionPercent = this.contractionPercent.slice();
+
     return data;
   }
 
-  resetSelection() {
+  sameData(data, prevData) {
+    let same = true;
 
+    if (JSON.stringify(data.e) !== JSON.stringify(prevData.e)) same = false;
+    if (JSON.stringify(data.fixedVs) !== JSON.stringify(prevData.fixedVs)) same = false;
+    if (JSON.stringify(data.lMax) !== JSON.stringify(prevData.lMax)) same = false;
+    if (JSON.stringify(data.edgeChannel) !== JSON.stringify(prevData.edgeChannel)) same = false;
+    if (JSON.stringify(data.edgeActive) !== JSON.stringify(prevData.edgeActive)) same = false;
+    if (JSON.stringify(data.script) !== JSON.stringify(prevData.script)) same = false;
+    if (JSON.stringify(data.maxContraction) !== JSON.stringify(prevData.maxContraction)) same = false;
+    if (data.euler.x !== prevData.euler.x) same = false;
+    if (data.euler.y !== prevData.euler.y) same = false;
+    if (data.euler.z !== prevData.euler.z) same = false;
+
+    if (data.numChannels !== prevData.numChannels) same = false;
+    if (data.numActions !== prevData.numActions) same = false;
+
+    return same;
+  }
+
+  recordHistory() {
+    const data = this.saveData();
+
+    if (this.Model.iHistory !== -1) {
+      if (this.sameData(data, this.Model.history[this.Model.iHistory])) {
+        return;
+      }
+    }
+
+    console.log('record');
+
+    Model.history = Model.history.slice(0, Model.iHistory + 1);
+
+    Model.history.push(this.saveData());
+    if (Model.history.length > 50) {
+      Model.history.shift();
+    }
+    Model.iHistory = Model.history.length - 1;
+  }
+  
+  applyHistory(i, update=true) {
+    if (i === -1) return;
+
+    const data = Model.history[i];
+
+    this.v = [];
+    for (let v of data.v) {
+      this.v.push(new thre.Vector3(v[0], v[1], v[2]));
+    }
+    this.v0 = [];
+    for (let v0 of data.v0) {
+      this.v0.push(new thre.Vector3(v0[0], v0[1], v0[2]));
+    }
+    this.e = [];
+    for (let i=0; i<data.e.length; i++) {
+      this.e.push(data.e[i].slice());
+    }
+    this.fixedVs =data.fixedVs.slice();
+    this.lMax = data.lMax.slice();
+    this.edgeChannel = data.edgeChannel.slice();
+    this.edgeActive = data.edgeActive.slice();
+    this.script = [];
+    for (let i=0; i<data.script.length; i++) {
+      const actions = data.script[i].slice();
+      this.script.push(actions);
+    }
+
+    this.maxContraction = data.maxContraction.slice();
+    this.vStatus = data.vStatus.slice();
+    this.eStatus = data.eStatus.slice();
+    this.fStatus = data.fStatus.slice();
+
+    this.euler = data.euler.clone();
+
+    this.numChannels = data.numChannels;
+    this.numActions = data.numActions;
+    this.inflateChannel = data.inflateChannel.slice();
+    this.contractionPercent = data.contractionPercent.slice();
+  }
+  
+  undo() {
+    if (Model.iHistory - 1 >= 0) {
+      Model.iHistory -= 1;
+    }
+    this.applyHistory(Model.iHistory);
+  }
+  
+  redo() {
+    if (Model.iHistory + 1 < Model.history.length) {
+
+      console.log(Model.iHistory);
+      Model.iHistory += 1;
+      console.log('yes');
+      console.log(Model.iHistory);
+    }
+    this.applyHistory(Model.iHistory);
+  }
+
+  resetSelection() {
     this.vStatus = new Array(this.v.length).fill(0);
     this.eStatus = new Array(this.e.length).fill(0);
     this.fStatus = new Array(this.f.length).fill(0);
@@ -290,7 +414,6 @@ class Model {
       }
       this.script = newValue;
     }
-
   }
 
   initCheck() {
@@ -408,7 +531,7 @@ class Model {
       for (let i=0; i<this.v.length; i++) {
         if (this.fixedVs[i]) continue;
 
-        if (this.sharedData.movingJoint && this.vStatus[i] !== 2) continue;
+        // if (this.sharedData.movingJoint && this.vStatus[i] !== 2) continue;
 
         this.vel[i].add(this.f[i].clone().multiplyScalar(Model.h));
         if (this.v[i].z <= 0) {

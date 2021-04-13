@@ -11,27 +11,28 @@ extend({OrbitControls})
 
 const cWhite = new THREE.Color(0.6, 0.6, 0.6);
 const cChannels = [
-  new THREE.Color(0.3, 0.3, 0.6),
-  new THREE.Color(0.6, 0.6, 0.3),
-  new THREE.Color(0.3, 0.6, 0.3),
-  new THREE.Color(0.3, 0.6, 0.6),
-  new THREE.Color(0.6, 0.3, 0.6),
+  new THREE.Color(0.1, 0.3, 0.6),
+  new THREE.Color(0.5, 0.4, 0.1),
+  new THREE.Color(0.5, 0.1, 0.5),
+  new THREE.Color(0.1, 0.5, 0.2),
+  new THREE.Color(0.6, 0.1, 0.4),
 ];
 const cPureWhite = new THREE.Color(1, 1, 1);
 const cBlack = new THREE.Color(0.05, 0.05, 0.05);
-const cSelected = new THREE.Color(0.3, 0.1, 0.1);
-const cHovered = new THREE.Color(0.5, 0.2, 0.2);
+const cSelected = new THREE.Color(0.9, 0.0, 0.0);
+const cHovered = new THREE.Color(0.9, 0.05, 0.0);
 const cFixed = new THREE.Color(0.2, 0.8, 0.8);
 const cPassive = new THREE.Color(0.15, 0.15, 0.15);
-const dIn = 0.04;     // diameter of the inner piston
-const dOut = 0.05;    // diameter of the outer piston
-const dConstraint = 0.05;    // diameter of the constraint
-const lConstraint = 0.02;    // length of the constraint
+const dIn = 0.05;     // diameter of the inner piston
+const dOut = 0.065;    // diameter of the outer piston
+const dConstraint = 0.06;    // diameter of the constraint
+const lConstraint = 0.04;    // length of the constraint
 const lPiston = 0.527;       // length of each half piston
 const lTube = 0.330;         // length of tube of each joint
-const dTube = 0.02;  // diameter of joint tubes
-const dJoint = 0.04;    // diameter of the joint ball
+const dTube = 0.026;  // diameter of joint tubes
+const dJoint = 0.045;    // diameter of the joint ball
 const fps = 30;
+const viewChannel = false;
 window.fps = fps;
 
 function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut, setOControls, translating}) {
@@ -71,6 +72,7 @@ function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut,
       if (e.value ===false) {
         controls.object.position.multiplyScalar(0);
         model.simulate=true;
+        model.recordHistory();
       }
       else {
         model.simulate=false;
@@ -108,10 +110,20 @@ function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut,
         onPointerOut={handlePointerOut}
       >
         <sphereBufferGeometry args={[1, 20, 20]}/>
-        <meshStandardMaterial
+        {
+          viewChannel?
+          <meshBasicMaterial
           ref={material}
-          color={c}
+          color={cBlack}
+          transparent={true}
+          opacity={0.4}
         />
+        :
+            <meshLambertMaterial
+              ref={material}
+              color={c}
+            />
+        }
       </mesh>
     </TransformControls>
   )
@@ -182,7 +194,7 @@ function Joint({v, iv, model, setOControls, sharedData}) {
   )
 }
 
-function Cylinder({v0, v1, d, c, handleClick, handlePointerOver, handlePointerOut }) {
+function Cylinder({v0, v1, d, c, opacity, transparent, handleClick, handlePointerOver, handlePointerOut }) {
   const mesh = useRef();
   const material = useRef();
 
@@ -223,10 +235,20 @@ function Cylinder({v0, v1, d, c, handleClick, handlePointerOver, handlePointerOu
       onPointerOut={handlePointerOut}
     >
       <cylinderBufferGeometry args={[1, 1, 1, 20]} />
-      <meshLambertMaterial
+      {
+        viewChannel?
+        <meshBasicMaterial
         ref={material}
         color={c}
+        opacity={opacity}
+        transparent={transparent}
       />
+      :
+          <meshLambertMaterial
+            ref={material}
+            color={c}
+          />
+      }
     </mesh>
   )
 }
@@ -256,12 +278,13 @@ function Beam({v0, v1, ie, model, sharedData
   const cIn = new THREE.Color();
   const cJoint = new THREE.Color();
   const cBeam = new THREE.Color();
+  const cInner = new THREE.Color();
 
   const changeColor =()=>{
+    const c = cChannels[model.edgeChannel[ie]];
     if (sharedData.showChannel) {
       const selected = (model.eStatus[ie] === 2);
       const hovered = (model.eStatus[ie] === 1);
-      const c = cChannels[model.edgeChannel[ie]];
       cOut.copy(selected ? cSelected : hovered ? cHovered : c);
       cIn.copy(selected ? cSelected : hovered ? cHovered : c);
       cJoint.copy(selected ? cSelected : hovered ? cHovered : c);
@@ -274,6 +297,13 @@ function Beam({v0, v1, ie, model, sharedData
       cIn.copy(selected ? cSelected : hovered ? cHovered : cWhite);
       cJoint.copy(selected ? cSelected : hovered ? cHovered : cWhite);
       cBeam.copy(selected ? cSelected : hovered ? cHovered : cPassive);
+      cInner.copy(c);
+    }
+    cInner.copy(c);
+    if (viewChannel) {
+      cOut.copy(cBlack);
+      cIn.copy(cBlack);
+      cJoint.copy(cBlack);
     }
   }
   changeColor();
@@ -326,16 +356,26 @@ function Beam({v0, v1, ie, model, sharedData
     sharedData.infoPanel.style.display = "none";
   }
 
+  const opacity = viewChannel? 0.15 : 1.0;
+  const transpacency = viewChannel;
+
   const cylinders = [
-    <Cylinder key="out" v0={vOut0} v1={vOut1} d={dOut} c={cOut}
+    <Cylinder key="out" v0={vOut0} v1={vOut1} d={dOut} c={cOut} opacity={opacity} transparent={transpacency}
               handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>,
-    <Cylinder key="in" v0={vIn0} v1={vIn1} d={dIn} c={cIn}
+    <Cylinder key="in" v0={vIn0} v1={vIn1} d={dIn} c={cIn} opacity={opacity} transparent={transpacency}
               handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>,
-    <Cylinder key="joint0" v0={vTube00} v1={vTube01} d={dTube} c={cJoint}
+    <Cylinder key="joint0" v0={vTube00} v1={vTube01} d={dTube} c={cJoint} opacity={opacity} transparent={transpacency}
               handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>,
-    <Cylinder key="joint1" v0={vTube10} v1={vTube11} d={dTube} c={cJoint}
+    <Cylinder key="joint1" v0={vTube10} v1={vTube11} d={dTube} c={cJoint} opacity={opacity} transparent={transpacency}
               handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>
     ];
+
+  if (viewChannel) {
+    cylinders.push(
+      <Cylinder key="inner" v0={vTube00} v1={vTube11} d={dTube * 0.5} c={cInner} opacity={2} transparent={false}
+              handleClick={handleClick} handlePointerOver={handlePointerOver} handlePointerOut={handlePointerOut}/>)
+  }
+
   if (model.maxContraction[ie] !== model.Model.maxMaxContraction) {
     cylinders.push(<Cylinder key="constraint" v0={vConstraint0} v1={vConstraint1} d={dConstraint} c={cBlack}/>);
   }
@@ -345,7 +385,7 @@ function Beam({v0, v1, ie, model, sharedData
   }
   else {
     return (
-      [<Cylinder key="beam" v0={v0} v1={v1} d={dTube} c={cBeam}
+      [<Cylinder key="beam" v0={v0} v1={v1} d={dTube} c={cBeam} opacity={opacity} transparent={false}
                 handleClick={handleClick} handlePointerOver={handlePointerOver}
                  handlePointerOut={handlePointerOut}/>]
     )
@@ -446,7 +486,7 @@ function PneuMesh({
     )
     state.ready=false;
     const nStepsPerSecond = 1 / model.Model.h;
-    model.step(Math.floor((2.4 / model.Model.h ) / fps));
+    model.step(Math.floor((1.5 / model.Model.h ) / fps));
   }, 0)
 
 
@@ -496,12 +536,12 @@ function PneuMesh({
 
 
 function DLight() {
-  const light = new THREE.DirectionalLight(new THREE.Color(1,1,1), 1.2);
+  const light = new THREE.DirectionalLight(new THREE.Color(1,1,1), 1.5);
   light.position.set(0, 0, 5);
   light.castShadow = true;
-  let mapSize = 10
-  light.shadow.mapSize.width = 512 * mapSize;
-  light.shadow.mapSize.height = 512 * mapSize;
+  let mapSize = 30
+  light.shadow.mapSize.width = 20 * mapSize;
+  light.shadow.mapSize.height = 20 * mapSize;
   light.shadow.camera.top = -3 * mapSize;
   light.shadow.camera.right = 3 * mapSize;
   light.shadow.camera.left = -3 * mapSize;
@@ -528,6 +568,8 @@ function Viewer({model, sharedData}) {
   model.controls = oControls;
   const [, forceUpdate] = useReducer(x => { return (x+1)}, 0);
   model.forceUpdate = forceUpdate;
+  window.updateModel = forceUpdate;
+  model.recordHistory();
 
   function setOControls(s){
     oControls.current.enabled = s
@@ -538,7 +580,8 @@ function Viewer({model, sharedData}) {
         shadowMap={true}
         concurrent={true}
         onCreated={({gl, camera}) => {
-          let intensity = 0.92
+          // let intensity = 0.92
+          let intensity = 1.0
           gl.setClearColor(new THREE.Color(intensity, intensity, intensity))
           gl.setPixelRatio(window.devicePixelRatio);  // required
           gl.shadowMap.enabled=true;  // default
@@ -573,11 +616,12 @@ function Viewer({model, sharedData}) {
           args={[100, 100]}
           rotation-x={-Math.PI/2}
           position-z={0}
-          visible={true}
+          // visible={true}
+          visible={false}
         />
 
         <PneuMesh model={model} sharedData={sharedData} setOControls={setOControls}/>
-        <Stats/>
+        {/*<Stats/>*/}
 
       </Canvas>
   );
