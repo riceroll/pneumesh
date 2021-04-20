@@ -5,7 +5,7 @@ import {makeStyles, Grid, List, ListItem, ListItemIcon, ListItemText, Divider,
         from '@material-ui/core'
 import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from 'react-three-fiber'
 import {AccessAlarm, Publish, GetApp, ChevronLeft, Edit, GpsFixed, GpsNotFixed,
-        RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus,
+        RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus, AddCircleOutlineRounded, VerticalAlignCenter,
         SettingsEthernet, WbSunny, FiberManualRecord, Lock, LockOpen} from "@material-ui/icons";
 
 const cBackground = "rgba(200, 200, 200, 0.6)";
@@ -295,7 +295,7 @@ function GUI({model, options, sharedData}) {
         window.data =data;
         model.loadDict(data);
         model.simulate=false;
-        model.gravity=true;
+        model.Model.gravity=true;
         model.forceUpdate();
         updateGUI();
       };
@@ -305,6 +305,8 @@ function GUI({model, options, sharedData}) {
   }
 
   const save = (e)=>{
+    model.recordV();
+
     let data = model.saveData();
     let json = JSON.stringify(data);
 
@@ -324,17 +326,6 @@ function GUI({model, options, sharedData}) {
          onPointerOut={(e)=>{sharedData.GUIHovered=false}}
     >
       <List>
-        <ListItem button selected={false}
-                  onClick={load}>
-          <ListItemIcon>
-            <Publish/>
-          </ListItemIcon>
-          <ListItemText>
-            Load
-          </ListItemText>
-        </ListItem>
-
-
         <ListItem button
                   onClick={save}>
           <ListItemIcon>
@@ -345,20 +336,29 @@ function GUI({model, options, sharedData}) {
           </ListItemText>
         </ListItem>
 
+        <ListItem button selected={false}
+                  onClick={load}>
+          <ListItemIcon>
+            <Publish/>
+          </ListItemIcon>
+          <ListItemText>
+            Load
+          </ListItemText>
+        </ListItem>
+
         <Divider/>
 
         <ListItem button selected={model.editing}
                   onClick={(e)=>{
                     model.editing = !model.editing;
-                    model.Model.gravity = !model.editing;
+                    sharedData.editingScript = false;
                     model.simulate = true;
-                    model.gravity = !model.editing;
                     sharedData.movingJoint = false;
                     sharedData.removingJoint = false;
                     sharedData.addingJoint = false;
                     updateGUI();
                     if (model.editing) {
-                      model.resetV();
+                      // model.resetV();
                     }
                     model.forceUpdate();
                   }}>
@@ -477,6 +477,7 @@ function GUI({model, options, sharedData}) {
         <ListItem button selected={sharedData.editingScript}
                   onClick={(e)=>{
                     sharedData.editingScript = !sharedData.editingScript;
+                    model.editing = false;
                     updateGUI();
                   }}>
           <ListItemIcon>
@@ -499,9 +500,9 @@ function GUI({model, options, sharedData}) {
           </ListItemText>
           <Switch
             i={0}
-            checked={model.gravity}
+            checked={model.Model.gravity}
             onChange={(e)=>{
-              model.gravity = !model.gravity;
+              model.Model.gravity = !model.Model.gravity;
               updateGUI();
             }}
           />
@@ -668,20 +669,31 @@ function GUI({model, options, sharedData}) {
             </ListItemText>
           </ListItem>
 
+          <Divider/>
+
           <ListItem>
             <ListItemText>
               X:
             </ListItemText>
             <Slider
+              key={"sliderX"}
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
               min={-Math.PI}
               max={Math.PI}
               valueLabelDisplay={"auto"}
+              onMouseDown={(e)=>{
+                model.center();
+                model.Model.gravity = false;
+              }}
+              onMouseUp={(e)=>{
+                model.center();
+                model.Model.gravity = true;
+              }}
               onChange={(e, val)=>{
-                model.rotate(val, model.euler.y, model.euler.z);
-                model.resetV();
+                model.rotateTo(val, model.euler.y, model.euler.z);
+                // model.resetV();
               }}
             />
           </ListItem>
@@ -692,15 +704,24 @@ function GUI({model, options, sharedData}) {
               Y:
             </ListItemText>
             <Slider
+              key={"sliderY"}
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
               min={-Math.PI}
               max={Math.PI}
               valueLabelDisplay={"auto"}
+              onMouseDown={(e)=>{
+                model.center();
+                model.Model.gravity = false;
+              }}
+              onMouseUp={(e)=>{
+                model.center();
+                model.Model.gravity = true;
+              }}
               onChange={(e, val)=>{
-                model.rotate(model.euler.x, val, model.euler.z);
-                model.resetV();
+                model.rotateTo(model.euler.x, val, model.euler.z);
+                // model.resetV();
               }}
             />
           </ListItem>
@@ -710,18 +731,89 @@ function GUI({model, options, sharedData}) {
               Z:
             </ListItemText>
             <Slider
+              key={"sliderZ"}
               defaultValue={0}
               arial-labelledby={"continuous-slider"}
               step={0.01}
               min={-Math.PI}
               max={Math.PI}
               valueLabelDisplay={"auto"}
+              onMouseDown={(e)=>{
+                model.center();
+                model.Model.gravity = false;
+              }}
+              onMouseUp={(e)=>{
+                model.center();
+                model.Model.gravity = true;
+              }}
               onChange={(e, val)=>{
-                model.rotate(model.euler.x, model.euler.y, val);
-                model.resetV();
+                model.rotateTo(model.euler.x, model.euler.y, val);
+                // model.resetV();
               }}
             />
           </ListItem>
+
+
+          <ListItem button
+                    onClick={(e)=>{
+                      model.numSteps = 0;
+                      model.center();
+                      model.precompute();
+                      model.forceUpdate();
+                      updateGUI();
+                    }}>
+            <ListItemIcon>
+              <AddCircleOutlineRounded />
+            </ListItemIcon>
+            <ListItemText>
+              Center Model
+            </ListItemText>
+          </ListItem>
+
+
+          {/*<ListItem button*/}
+          {/*          onClick={(e)=>{*/}
+          {/*            model.recordV();*/}
+          {/*          }}>*/}
+          {/*  <ListItemIcon>*/}
+          {/*    <SettingsEthernet />*/}
+          {/*  </ListItemIcon>*/}
+          {/*  <ListItemText>*/}
+          {/*    Record V*/}
+          {/*  </ListItemText>*/}
+          {/*</ListItem>*/}
+
+          <ListItem button
+                    onClick={(e)=>{
+                      const iJointsSelected = [];
+                      for (let i=0; i<model.v.length; i++) {
+                        if (model.vStatus[i] === 2) iJointsSelected.push(i);
+                      }
+
+                      model.align(true, iJointsSelected);
+                      model.forceUpdate();
+                    }}>
+            <ListItemIcon>
+              <VerticalAlignCenter />
+            </ListItemIcon>
+            <ListItemText>
+              Align with X-axis
+            </ListItemText>
+          </ListItem>
+
+          {/*<ListItem button*/}
+          {/*          onClick={(e)=>{*/}
+          {/*            // model.resetV();*/}
+          {/*            model.forceUpdate();*/}
+          {/*          }}>*/}
+          {/*  <ListItemIcon>*/}
+          {/*    <SettingsEthernet />*/}
+          {/*  </ListItemIcon>*/}
+          {/*  <ListItemText>*/}
+          {/*    Reset*/}
+          {/*  </ListItemText>*/}
+          {/*</ListItem>*/}
+
         </List>
 
 

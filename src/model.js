@@ -17,21 +17,6 @@ class Vertex {
     this.id = Vertex.all.length;
     Vertex.all.push(this);
   }
-
-  facesOnTheOtherSide() {
-    // const fs = [];
-    // for (const f of Face.all) {
-    //   let onTheOtherSide = true;
-    //   for (const v of f.vs) {
-    //     if (!v.vs.includes(v)) {
-    //       onTheOtherSide = false;
-    //       break;
-    //     }
-    //   }
-    //   if (onTheOtherSide) fs.push(f);
-    // }
-    // return fs;
-  }
 }
 
 class Edge {
@@ -62,12 +47,12 @@ class Edge {
 class Model {
   static k = 200000;
   static h = 0.001;
-  static dampingRatio = 0.992;
+  static dampingRatio = 0.999;
   static contractionInterval = 0.075;
-  static contractionSteps = 4;
-  static maxMaxContraction = Math.round(Model.contractionInterval * Model.contractionSteps * 100) /100;
-  static contractionPercentRate = 5e-4 ;  // contraction percentage change ratio, per time step
-  static gravityFactor = 9.8 * 20;
+  static contractionLevels = 5;
+  static maxMaxContraction = Math.round(Model.contractionInterval * (Model.contractionLevels - 1) * 100) /100;
+  static contractionPercentRate = 1e-3 ;  // contraction percentage change ratio, per time step
+  static gravityFactor = 9.8 * 10;
   static gravity = 1;     // if gravity is on
   static defaultMinLength = 1.2;
   static defaultMaxLength = Model.defaultMinLength / (1 - Model.maxMaxContraction);
@@ -75,6 +60,8 @@ class Model {
   static numStepsAction = 2 / Model.h;
   static defaultNumActions = 1;
   static defaultNumChannels = 4;
+  static angleThreshold = Math.PI/2;
+  static angleCheckFrequency = Model.numStepsAction / 20;  // every # steps check angle thresholds
 
   static history = [];
   static iHistory = -1;
@@ -100,6 +87,8 @@ class Model {
     this.v = [];  // vertex positions: nV x 3
     this.e = [];  // edge positions: nE x 2
     this.v0 = [];
+    this.c = [];  // instances of v of corners: nC x 3, e.g. <AOB -> [iO, iA, iB]
+    this.a0 = [];   // corner angles: nC
     this.fixedVs = [];  // id of vertices that are fixed
     this.lMax = []; // maximum length
     this.edgeActive = [];  // if beam is active: nE
@@ -125,7 +114,7 @@ class Model {
     // status
     this.editing = false;
     this.simulate = true;
-    this.gravity = true;
+    Model.gravity = true;
     this.directional = false;
     this.euler = new thre.Euler(0, 0, 0);
 
@@ -137,6 +126,7 @@ class Model {
   }
 
   loadDict(data) {
+    console.log(data);
     // load a dictionary
     let v = [];
     let e = Array.from(data.e);
@@ -148,13 +138,16 @@ class Model {
       v.push(new thre.Vector3(data.v[i][0], data.v[i][1], data.v[i][2]));
     }
     this.reset();
-    let lMax, maxContraction, fixedVs, edgeChannel, edgeActive
+    let lMax, maxContraction, fixedVs, edgeChannel, edgeActive, script
     if (data.lMax) { lMax = data.lMax;}
     if (data.maxContraction) {maxContraction = data.maxContraction;}
     if (data.fixedVs)  {fixedVs = data.fixedVs;}
     if (data.edgeChannel)  edgeChannel = data.edgeChannel;
     if (data.edgeActive)  edgeActive = data.edgeActive;
-    this.loadData(v, e, f, p, lMax, maxContraction, fixedVs, edgeChannel, edgeActive);
+    if (data.script) script = data.script;
+    if (data.numChannels) this.numChannels = data.numChannels;
+    if (data.numActions) this.numActions = data.numActions;
+    this.loadData(v, e, f, p, lMax, maxContraction, fixedVs, edgeChannel, edgeActive, script);
 
     if (!(data.lMax || data.maxContraction || data.fixedVs)) {
       this.loadData(v, e, f, p);
@@ -187,6 +180,7 @@ class Model {
     if (edgeChannel) this.edgeChannel = edgeChannel;
     if (script) this.script = script;
 
+    this.updateCorners();
     this.precompute();
 
     this.initCheck();
@@ -419,18 +413,20 @@ class Model {
   initCheck() {
 
     // rescale
-    let minlMax = 1e5;
-    for (let i=0; i<this.e.length; i++) {
-      if (this.edgeActive[i]) {
-        if (this.l[i] < minlMax) {
-          minlMax = this.l[i];
+    if (false) {
+      let minlMax = 1e5;
+      for (let i = 0; i < this.e.length; i++) {
+        if (this.edgeActive[i]) {
+          if (this.l[i] < minlMax) {
+            minlMax = this.l[i];
+          }
         }
       }
-    }
-    console.log(`Minimum max length among active beams is ${minlMax}.`)
-    for (let i=0; i<this.v.length; i++) {
-      this.v[i].divideScalar(minlMax);
-      this.v[i].multiplyScalar(Model.defaultMaxLength);
+      console.log(`Minimum max length among active beams is ${minlMax}.`)
+      for (let i = 0; i < this.v.length; i++) {
+        this.v[i].divideScalar(minlMax);
+        this.v[i].multiplyScalar(Model.defaultMaxLength);
+      }
     }
 
     // lMax check
@@ -443,6 +439,63 @@ class Model {
       }
     }
 
+  }
+
+  static getAngle(e0, e1, indices=false) {
+    // e0, e1: Edge instances
+    // indices: return indices of three vertices OAB
+    // return: angle between them, (return indices of three vertices OAB)
+    let vs0 = e0.vs;
+    let vs1 = e1.vs;
+    let vs;
+    if (vs0[0] === vs1[0]) vs = [vs0[0], vs0[1], vs1[1]];
+    else if (vs0[0] === vs1[1]) vs = [vs0[0], vs0[1], vs1[0]];
+    else if (vs0[1] === vs1[0]) vs = [vs0[1], vs0[0], vs1[1]];
+    else if (vs0[1] === vs1[1]) vs = [vs0[1], vs0[0], vs1[0]];
+    else console.error("edges not intersected");
+
+    const O = vs[0].pos.clone();
+    const A = vs[1].pos.clone();
+    const B = vs[2].pos.clone();
+
+    A.sub(O);
+    B.sub(O);
+    if (indices) {
+      return [A.angleTo(B), [vs[0].id, vs[1].id, vs[2].id] ];
+    }
+
+    return A.angleTo(B);
+  }
+
+  updateCorners() {
+    // update this.c, this.a0
+    this.updateDataStructure();
+
+    this.c = [];
+    this.a0 = [];
+    for (let v of Vertex.all) {
+      let es = v.es;
+      for (let i=0; i<es.length-1; i++) {
+        let e0 = es[i];
+        let e1 = es[i+1];
+
+        let [alpha, ids] = Model.getAngle(e0, e1, true);
+        this.c.push(ids);
+        this.a0.push(alpha);
+      }
+    }
+  }
+
+  checkCorners() {
+    // return false if any angle change is larger than threshold
+    for (let i=0; i<this.c.length; i++) {
+      let [iO, iA, iB] = this.c[i];
+      let vec0 = this.v[iA].clone().sub(this.v[iO]);
+      let vec1 = this.v[iB].clone().sub(this.v[iO]);
+      let alpha = vec0.angleTo(vec1);
+      if (Math.abs(alpha - this.a0[i]) > Model.angleThreshold) return false;
+    }
+    return true;
   }
 
   update() {
@@ -477,11 +530,10 @@ class Model {
 
     // gravity
     for (let i=0; i<this.v.length; i++) {
-      if (this.gravity) {
+      if (Model.gravity) {
         this.f[i].add(new thre.Vector3(0, 0, -Model.gravityFactor * Model.gravity));
       }
     }
-
     // friction
   }
 
@@ -490,6 +542,9 @@ class Model {
 
     if (this.numSteps > ((this.iAction + 1) % this.numActions) * Model.numStepsAction ) {
       this.iAction = Math.floor(this.numSteps / Model.numStepsAction) % this.numActions;
+      if (this.editing) {
+        this.iAction = 0;
+      }
 
       for (let iChannel=0; iChannel<this.numChannels; iChannel++) {
         this.inflateChannel[iChannel] = this.script[iChannel][this.iAction];
@@ -531,39 +586,36 @@ class Model {
       for (let i=0; i<this.v.length; i++) {
         if (this.fixedVs[i]) continue;
 
-        // if (this.sharedData.movingJoint && this.vStatus[i] !== 2) continue;
+        if (this.sharedData.movingJoint && this.vStatus[i] !== 2) continue;
 
         this.vel[i].add(this.f[i].clone().multiplyScalar(Model.h));
-        if (this.v[i].z <= 0) {
-          // friction
-          if (this.directional) {
-            if (this.vel[i].x < 0) this.vel[i].x *= (1 - Model.frictionFactor);
-            if (this.vel[i].y < 0) this.vel[i].y *= (1 - Model.frictionFactor);
-          }
-          else {
-            this.vel[i].x *= (1 - Model.frictionFactor);
-            this.vel[i].y *= (1 - Model.frictionFactor);
-          }
-        }
 
         this.vel[i].multiplyScalar(Model.dampingRatio);   // damping
         while (this.vel[i].length() > 5) {
           this.vel[i].multiplyScalar(0.9);
         }
 
-        this.v[i].add(this.vel[i].clone().multiplyScalar(Model.h));
-
-      }
-
-      for (let i=0; i<this.v.length; i++) {
-        if (this.v[i].z < 0)
-        {
-          this.v[i].z = 0;
+        if (this.v[i].z <= 0) {
+          this.vel[i].x *= (1 - Model.frictionFactor);
+          this.vel[i].y *= (1 - Model.frictionFactor);
           this.vel[i].z = -this.vel[i].z;
         }
       }
 
+      for (let i=0; i<this.v.length; i++) {
+        this.v[i].add(this.vel[i].clone().multiplyScalar(Model.h));
+
+        if (this.v[i].z < 0)
+        {
+          this.v[i].z = 0;
+        }
+      }
+
+      console.assert(this.checkCorners());
+
+
       this.numSteps += 1;
+
     }
 
     return this.v;
@@ -611,6 +663,8 @@ class Model {
 
     let e = [iJoint, this.v.length - 1];
     this.e.push(e);
+
+    this.updateCorners();
   }
 
   addEdges(iJoints) {
@@ -626,6 +680,8 @@ class Model {
         if (notExist) this.e.push([iJoints[i], iJoints[j]]);
       }
     }
+
+    this.updateCorners();
   }
 
   removeJoint(iJoint) {
@@ -647,7 +703,9 @@ class Model {
     Model.reindexObjects(Edge)
 
     this.updateFromDataStructure();
-    this.forceUpdate()
+    this.updateCorners();
+
+    this.forceUpdate();
   }
 
   removeEdge(iEdge) {
@@ -719,12 +777,48 @@ class Model {
     return center;
   }
 
-  center() {
-    const cent0 = this.centroid(true);
-    const cent = this.centroid(false);
+  center(v0=false) {
+    // v0 : center v0 of the object if true
+    const cent = this.centroid();
+    const [xMax, yMax, zMax, xMin, yMin, zMin] = this.bbox();
+    const gap = Math.max([zMax - zMin, yMax - yMin, xMax - xMin]);
+
     for (let i=0; i<this.v.length; i++) {
-      this.v[i].sub(cent);
-      this.v[i].add(cent0);
+      this.v[i].x -= cent.x;
+      this.v[i].y -= cent.y;
+      this.v[i].z -= zMin;
+      this.v[i].z += zMax - zMin;
+    }
+
+    this.recordV();
+  }
+
+  align(x=true, ivs = []) {
+    // align the axis of model(from centroid to the centroid of selected front vertices) along x/y axis
+    // x: align along x axis if true, otherwise along y axis
+    // ivs: indices of front vertices
+
+    if (ivs.length > 0) {
+      let centFront = new thre.Vector3(0, 0, 0);
+      for (let iv of ivs) {
+        const v = this.v[iv];
+        centFront.add(v);
+      }
+
+      centFront.divideScalar(ivs.length);
+
+      const cent = this.centroid();
+
+      centFront.sub(cent);
+      let vec = centFront.clone();
+      vec.z = 0;
+
+      // Returns the angle (in radians) from the X axis to a point.
+      let rotRadZ = Math.atan2(vec.y, vec.x);
+
+      if (!x) rotRadZ -= Math.PI / 2;
+
+      this.rotateTo(this.euler.x, this.euler.y, this.euler.z-rotRadZ);
     }
   }
 
@@ -760,9 +854,6 @@ class Model {
     for (let i=0; i<ids.length; i++) {
       let id = ids[i];
       alert('not implemented');
-      // if (viewer.typeSelected[i] === "joint") {
-      //   this.fixedVs[id] = true;
-      // }
     }
   }
 
@@ -771,8 +862,8 @@ class Model {
     this.fixedVs = new Array(this.v.length).fill(false);
   }
 
-  rotate(x, y, z) {
-    this.resetV();
+  rotateTo(x, y, z) {
+    // this.resetV();
 
     let center = this.centroid();
     let eulerInverse = new thre.Euler();

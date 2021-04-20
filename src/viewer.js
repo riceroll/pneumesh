@@ -30,7 +30,7 @@ const lConstraint = 0.04;    // length of the constraint
 const lPiston = 0.527;       // length of each half piston
 const lTube = 0.330;         // length of tube of each joint
 const dTube = 0.026;  // diameter of joint tubes
-const dJoint = 0.045;    // diameter of the joint ball
+const dJoint = 0.06;    // diameter of the joint ball
 const fps = 30;
 const viewChannel = false;
 window.fps = fps;
@@ -616,8 +616,7 @@ function Viewer({model, sharedData}) {
           args={[100, 100]}
           rotation-x={-Math.PI/2}
           position-z={0}
-          // visible={true}
-          visible={false}
+          visible={true}
         />
 
         <PneuMesh model={model} sharedData={sharedData} setOControls={setOControls}/>
