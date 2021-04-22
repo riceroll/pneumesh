@@ -590,32 +590,29 @@ class Model {
 
         this.vel[i].add(this.f[i].clone().multiplyScalar(Model.h));
 
+        if (this.v[i].z <= 0) {
+          this.vel[i].x *= (1 - Model.frictionFactor);
+          this.vel[i].y *= (1 - Model.frictionFactor);
+        }
+
         this.vel[i].multiplyScalar(Model.dampingRatio);   // damping
         while (this.vel[i].length() > 5) {
           this.vel[i].multiplyScalar(0.9);
         }
 
-        if (this.v[i].z <= 0) {
-          this.vel[i].x *= (1 - Model.frictionFactor);
-          this.vel[i].y *= (1 - Model.frictionFactor);
-          this.vel[i].z = -this.vel[i].z;
-        }
-      }
-
-      for (let i=0; i<this.v.length; i++) {
         this.v[i].add(this.vel[i].clone().multiplyScalar(Model.h));
 
-        if (this.v[i].z < 0)
-        {
+        if (this.v[i].z <= 0) {
+          this.vel[i].z = -this.vel[i].z;
           this.v[i].z = 0;
         }
       }
 
-      console.assert(this.checkCorners());
-
+      if (this.numSteps % Model.angleCheckFrequency === 0) {
+        console.assert(this.checkCorners());
+      }
 
       this.numSteps += 1;
-
     }
 
     return this.v;
