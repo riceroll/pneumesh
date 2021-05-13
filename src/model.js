@@ -618,39 +618,6 @@ class Model {
     return this.v;
   }
 
-  // addPolytope(iFace) {
-  //   let face = this.faces[iFace];
-  //   let v0 = this.v[face[0]];
-  //   let v1 = this.v[face[1]];
-  //   let v2 = this.v[face[2]];
-  //   let centroid = v0.clone().add(v1).add(v2).divideScalar(3);
-  //   let vec01 = v1.clone().sub(v0);
-  //   let vec12 = v2.clone().sub(v1);
-  //   let height = Math.sqrt(3) / 2 * Model.defaultMinLength;
-  //   let v4 = centroid.add(vec01.cross(vec12).normalize().multiplyScalar(height));
-  //   this.v.push(v4);
-  //   this.f.push(new thre.Vector3());
-  //   this.vel.push(new thre.Vector3());
-  //
-  //   let iv4 = this.v.length - 1;
-  //
-  //   let e0 = [face[0], iv4];
-  //   let e1 = [face[1], iv4];
-  //   let e2 = [face[2], iv4];
-  //   this.e.push(e0, e1, e2);
-  //
-  //   let face0 = [face[2], face[1], face[0]];
-  //   let face1 = [face[0], face[1], iv4];
-  //   let face2 = [face[1], face[2], iv4];
-  //   let face3 = [face[2], face[0], iv4];
-  //   this.faces.push(face0, face1, face2, face3);
-  //
-  //   this.precompute();
-  //   this.recordV();
-  //
-  //   this.updateDataStructure();
-  // }
-
   addJoint(iJoint) {
     let v = new thre.Vector3();
     v.copy(this.v[iJoint]);
