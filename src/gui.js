@@ -184,7 +184,7 @@ function ControlChannel({n, model, updateGUI}) {
       <Grid key={i} item style={{width: `${1/n * 100}%`, textAlign: "center"}}>
         <Switch
           size={"small"}
-          checked={model.inflateChannel[i]}
+          checked={Boolean(model.inflateChannel[i])}
           onClick={(e)=>{
             console.log(e.target.checked);
             model.inflateChannel[i] = e.target.checked;

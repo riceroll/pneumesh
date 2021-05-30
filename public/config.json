@@ -1,0 +1,17 @@
+{
+  "k": 200000,
+  "h": 0.001,
+  "dampingRatio": 0.999,
+  "contractionInterval": 0.075,
+  "contractionLevels": 5,
+  "contractionPercentRate": 1e-3,
+  "gravityFactor": 98,
+  "gravity": 1,
+  "defaultMinLength": 1.2,
+  "frictionFactor": 0.8,
+  "numStepsActionMultiplier": 2,
+  "defaultNumActions": 1,
+  "defaultNumChannels": 4,
+  "angleThreshold": 1.5708,
+  "angleCheckFrequencyMultiplier": 0.05
+}

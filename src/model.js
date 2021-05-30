@@ -45,26 +45,51 @@ class Edge {
 }
 
 class Model {
-  static k = 200000;
-  static h = 0.001;
-  static dampingRatio = 0.999;
-  static contractionInterval = 0.075;
-  static contractionLevels = 5;
-  static maxMaxContraction = Math.round(Model.contractionInterval * (Model.contractionLevels - 1) * 100) /100;
-  static contractionPercentRate = 1e-3 ;  // contraction percentage change ratio, per time step
-  static gravityFactor = 9.8 * 10;
-  static gravity = 1;     // if gravity is on
-  static defaultMinLength = 1.2;
-  static defaultMaxLength = Model.defaultMinLength / (1 - Model.maxMaxContraction);
-  static frictionFactor = 0.8;
-  static numStepsAction = 2 / Model.h;
-  static defaultNumActions = 1;
-  static defaultNumChannels = 4;
-  static angleThreshold = Math.PI/2;
-  static angleCheckFrequency = Model.numStepsAction / 20;  // every # steps check angle thresholds
-
   static history = [];
   static iHistory = -1;
+
+  static configure() {
+    let setting = (json) => {
+      let data = JSON.parse(json);
+      Model.k = data.k;
+      Model.h = data.h;
+      Model.dampingRatio = data.dampingRatio;
+      Model.contractionInterval = data.contractionInterval;
+      Model.contractionLevels = data.contractionLevels;
+      Model.maxMaxContraction = Math.round(Model.contractionInterval * (Model.contractionLevels - 1) * 100) /100;
+      Model.contractionPercentRate = data.contractionPercentRate;
+      Model.gravityFactor = data.gravityFactor;
+      Model.gravity = Boolean(data.gravity);
+      Model.defaultMinLength = data.defaultMinLength;
+      Model.defaultMaxLength = Model.defaultMinLength / (1 - Model.maxMaxContraction);
+      Model.frictionFactor = data.frictionFactor;
+      Model.numStepsAction = data.numStepsActionMultiplier / Model.h;
+      Model.defaultNumActions = data.defaultNumActions;
+      Model.defaultNumChannels = data.defaultNumChannels;
+      Model.angleThreshold = data.angleThreshold;
+      Model.angleCheckFrequency = Model.numStepsAction * data.angleCheckFrequencyMultiplier;  // every # steps check angle thresholds
+    }
+
+    function readTextFile(file)
+    {
+      let rawFile = new XMLHttpRequest();
+      rawFile.open("GET", file, false);
+      rawFile.onreadystatechange = function ()
+      {
+        if(rawFile.readyState === 4)
+        {
+          if(rawFile.status === 200 || rawFile.status === 0)
+          {
+            let allText = rawFile.responseText;
+            setting(allText);
+          }
+        }
+      }
+      rawFile.send(null);
+    }
+
+    readTextFile("config.json")
+  }
 
   constructor() {
     this.viewer = null;
@@ -75,6 +100,7 @@ class Model {
     this.controls = null;
     this.sharedData = null;
 
+    Model.configure();
     this.reset();
 
     this.loadData();
@@ -520,10 +546,10 @@ class Model {
         let lMin = lMax * (1 - this.maxContraction[i]);
         l0 = lMax - this.contractionPercent[iChannel] * (lMax - lMin);
       }
-
       let d = vec.length() - l0;
       let f = (d) * Model.k;
       f = vec.normalize().multiplyScalar(f);  // from 0 to 1
+
       this.f[e[0]].add(f);
       this.f[e[1]].add(f.negate());
     }
@@ -561,7 +587,6 @@ class Model {
       if (scripting) {
         this.runScript();
       }
-      this.update();
 
       if (this.editing) {
         // this.center();
@@ -583,6 +608,9 @@ class Model {
         }
       }
 
+
+      this.update(); // update lengths and forces
+
       for (let i=0; i<this.v.length; i++) {
         if (this.fixedVs[i]) continue;
 
@@ -596,8 +624,9 @@ class Model {
         }
 
         this.vel[i].multiplyScalar(Model.dampingRatio);   // damping
-        while (this.vel[i].length() > 5) {
-          this.vel[i].multiplyScalar(0.9);
+        if (this.vel[i].length() > 5) {
+
+          this.vel[i].multiplyScalar(Math.pow(0.9, Math.ceil(Math.log(5/this.vel[i].length()) / Math.log(0.9))));
         }
 
         this.v[i].add(this.vel[i].clone().multiplyScalar(Model.h));
