@@ -426,9 +426,12 @@ function GUI({model, options, sharedData}) {
                       model.lMax[i] = val;
                     }
                   }
+                  model.forceUpdate();
                 }
               }
               onPointerUp={()=>{model.forceUpdate()}}
+
+
             />
         </ListItem>
 
@@ -757,6 +760,8 @@ function GUI({model, options, sharedData}) {
           <ListItem button
                     onClick={(e)=>{
                       model.numSteps = 0;
+                      model.simulate = false;
+                      model.v = model.v0;
                       model.center();
                       model.precompute();
                       model.forceUpdate();

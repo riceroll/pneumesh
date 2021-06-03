@@ -457,7 +457,7 @@ class Model {
 
     // lMax check
     for (let i=0; i<this.e.length; i++) {
-      if (this.edgeActive[i] || true) {
+      if (this.edgeActive[i]) {
         if (this.lMax[i] !== this.Model.defaultMaxLength) {
           console.log(`An active beam is having wrong max length ${this.lMax[i]}.`)
           this.lMax[i] = this.Model.defaultMaxLength;
