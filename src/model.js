@@ -134,6 +134,7 @@ class Model {
 
     // statistics
     this.iAction = 0;
+    this.iActionPrev = 0;
     this.numSteps = 0;
     this.timeStart = new Date();
 
@@ -298,6 +299,14 @@ class Model {
     if (i === -1) return;
 
     const data = Model.history[i];
+
+    let sim = this.simulate;
+    let grav = this.Model.gravity;
+    this.loadDict(data);
+    this.simulate = sim;
+    this.Model.gravity = grav;
+    this.forceUpdate();
+    return;
 
     this.v = [];
     for (let v of data.v) {
@@ -614,7 +623,7 @@ class Model {
       for (let i=0; i<this.v.length; i++) {
         if (this.fixedVs[i]) continue;
 
-        if (this.sharedData.movingJoint && this.vStatus[i] !== 2) continue;
+        if (this.sharedData.movingJoint && !this.sharedData.movingBody && this.vStatus[i] !== 2) continue;
 
         this.vel[i].add(this.f[i].clone().multiplyScalar(Model.h));
 
@@ -638,7 +647,7 @@ class Model {
       }
 
       if (this.numSteps % Model.angleCheckFrequency === 0) {
-        console.assert(this.checkCorners());
+        // console.assert(this.checkCorners());
       }
 
       this.numSteps += 1;
@@ -657,7 +666,7 @@ class Model {
     let e = [iJoint, this.v.length - 1];
     this.e.push(e);
 
-    this.updateCorners();
+    // this.updateCorners();
   }
 
   addEdges(iJoints) {
@@ -676,6 +685,111 @@ class Model {
 
     this.updateCorners();
   }
+
+  addTet(iJoints) {
+    if (iJoints.length !== 3) {return}
+
+    let ij0 = iJoints[0];
+    let ij1 = iJoints[1];
+    let ij2 = iJoints[2];
+    let v0 = this.v[ij0];
+    let v1 = this.v[ij1];
+    let v2 = this.v[ij2];
+
+    let n_connecting_edges = 0;
+
+    let es_connecting_3j = [];
+    for (let e of this.e) {
+      let n_connected_js = 0;
+      let added = false;
+      if (e.includes(ij0)) {
+        if (! added) {
+          es_connecting_3j.push(e);
+          added = true;
+        }
+        n_connected_js += 1;
+      }
+      if (e.includes(ij1)) {
+        if (!added) {
+          es_connecting_3j.push(e);
+          added = true;
+        }
+        n_connected_js += 1;
+      }
+      if (e.includes(ij2)) {
+        if (!added) {
+          es_connecting_3j.push(e);
+          added = true;
+        }
+        n_connected_js += 1;
+      }
+
+      console.assert(n_connected_js <= 2);
+      if (n_connected_js === 2) n_connecting_edges += 1;
+    }
+
+    console.assert(n_connecting_edges <= 3);
+    if (n_connecting_edges === 3) {
+      let vs_connected = {};
+      for (let e of es_connecting_3j) {
+        if (e[0] in vs_connected) {vs_connected[e[0]] += 1}
+        else {
+          vs_connected[e[0]] = 1;
+        }
+        if (e[1] in vs_connected) {vs_connected[e[1]] += 1}
+        else {
+          vs_connected[e[1]] = 1;
+        }
+      }
+      let nv_connected_3j = 0;
+      let iv_mirror = -1;
+      for (let iv in vs_connected) {
+        iv = parseInt(iv);
+        if ([ij0, ij1, ij2].includes(iv)) continue;
+        let nv = vs_connected[iv];
+        if (nv === 3) {
+          iv_mirror = iv;
+          nv_connected_3j += 1;
+        }
+        console.log('iv_mirror: ', iv_mirror);
+
+        console.assert(nv <= 3);
+      }
+      if (nv_connected_3j > 1) {
+        console.log('more than one tet connected.');
+        return;
+      }
+
+      if (iv_mirror !== -1) {
+        let vm = this.v[iv_mirror];   // v_mirror
+        let vn = new thre.Vector3();  // v_new
+        vn.copy(vm);
+
+        let vec01 = new thre.Vector3();
+        let vec12 = new thre.Vector3();
+        vec01.subVectors(v1, v0);
+        vec12.subVectors(v2, v1);
+        let normal = vec01.cross(vec12).normalize();
+        let dot = vm.clone().sub(v0).dot(normal);
+        if (dot < 0) normal.negate();
+        let dist = vm.clone().sub(v0).dot(normal);
+        let displacement = normal.multiplyScalar(-2 * dist);
+        vn.add(displacement);
+
+        this.v.push(vn);
+        let e0 = [ij0, this.v.length - 1];
+        let e1 = [ij1, this.v.length - 1];
+        let e2 = [ij2, this.v.length - 1];
+        this.e.push(e0);
+        this.e.push(e1);
+        this.e.push(e2);
+      }
+    }
+    else {
+      console.log('Points not in a triangle.');
+    }
+  }
+
 
   removeJoint(iJoint) {
     if ([0,1,2,3].includes(iJoint)) return;

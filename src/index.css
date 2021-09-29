@@ -25,6 +25,10 @@ code {
   min-height: 5.6vh!important;
 }
 
+.MuiListItemIcon-root {
+  min-width: 40px!important;
+}
+
 .MuiTypography-root {
   font-size: small!important;
 }

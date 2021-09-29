@@ -21,7 +21,7 @@ const cPureWhite = new THREE.Color(1, 1, 1);
 const cBlack = new THREE.Color(0.05, 0.05, 0.05);
 const cSelected = new THREE.Color(0.9, 0.0, 0.0);
 const cHovered = new THREE.Color(0.9, 0.05, 0.0);
-const cFixed = new THREE.Color(0.2, 0.8, 0.8);
+const cFixed = new THREE.Color(0.2, 0.6, 0.6);
 const cPassive = new THREE.Color(0.15, 0.15, 0.15);
 const dIn = 0.05;     // diameter of the inner piston
 const dOut = 0.065;    // diameter of the outer piston
@@ -75,7 +75,7 @@ function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut,
         model.recordHistory();
       }
       else {
-        model.simulate=false;
+        // model.simulate=false;
         prevPos.copy(controls.worldPosition);
       }
     }
@@ -326,8 +326,11 @@ function Beam({v0, v1, ie, model, sharedData
     vConstraint0.copy(vIn0.clone().sub(vec.clone().multiplyScalar(
       model.lMax[ie] * (model.Model.maxMaxContraction - model.maxContraction[ie]) )));
     vConstraint1.copy(vConstraint0.clone().add(vecConstraint));
-
-    changeColor();
+    try {
+      changeColor();
+    } catch(error) {
+      console.log('error: changeColor');
+    }
   });
 
   const handleClick = (e)=>{
@@ -487,6 +490,10 @@ function PneuMesh({
     state.ready=false;
     const nStepsPerSecond = 1 / model.Model.h;
     model.step(Math.floor((1.5 / model.Model.h ) / fps));
+    if (model.iAction !== model.iActionPrev) {
+      sharedData.updateGUI();
+      model.iActionPrev = model.iAction;
+    }
   }, 0)
 
 

@@ -11,7 +11,7 @@
   "frictionFactor": 0.8,
   "numStepsActionMultiplier": 2,
   "defaultNumActions": 1,
-  "defaultNumChannels": 4,
+  "defaultNumChannels": 5,
   "angleThreshold": 1.5708,
   "angleCheckFrequencyMultiplier": 0.05
 }

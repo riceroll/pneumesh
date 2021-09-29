@@ -4,13 +4,18 @@ import {makeStyles, Grid, List, ListItem, ListItemIcon, ListItemText, Divider,
         Icon, Slider, Switch, Typography, IconButton}
         from '@material-ui/core'
 import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from 'react-three-fiber'
-import {AccessAlarm, Publish, GetApp, ChevronLeft, Edit, GpsFixed, GpsNotFixed,
-        RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus, AddCircleOutlineRounded, VerticalAlignCenter,
-        SettingsEthernet, WbSunny, FiberManualRecord, Lock, LockOpen} from "@material-ui/icons";
+import {
+  AccessAlarm, Publish, GetApp, ChevronLeft, ExitToApp, Edit, GpsFixed, GpsNotFixed,
+  RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus, AddCircleOutlineRounded, VerticalAlignCenter,
+  SettingsEthernet, WbSunny, FiberManualRecord, Lock, LockOpen, AddCircleOutline, ChangeHistory, HighlightOff,
+  Link, LinkOff, Visibility, OpenWith, ColorLens, Palette, ArrowDownward, Comment, Computer, HelpOutline
+} from "@material-ui/icons";
 
 const cBackground = "rgba(200, 200, 200, 0.6)";
+const cTransparent = "rgba(200, 200, 200, 0.0)";
 
 const cHovered = "rgba(250, 250, 250, 0.9)";
+const cHighlight = "rgba(250, 100, 50, 0.9)";
 const cOff = "rgba(150, 150, 150, 1)";
 
 const cChannels = [
@@ -18,7 +23,17 @@ const cChannels = [
   "rgb(240, 240, 20)",
   "rgb(200, 100, 200)",
   "rgb(100, 200, 130)",
-  "rgb(200, 100, 200)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
+  "rgb(200, 100, 100)",
 ];
 
 const widthBlock = 5;   // vh
@@ -65,6 +80,26 @@ const useStyles = makeStyles((theme) => ({
     top: "44vh",
     width: "30vh",
     background: cBackground,
+  },
+  help: {
+    position: "absolute",
+    cursor: "pointer",
+    right: "10px",
+    bottom: "10px",
+    width: "40px",
+    height: "40px",
+    alignContent: "center",
+    background: cBackground,
+  },
+  examples: {
+    position: "absolute",
+    width: "130px",
+    right: "60px",
+    bottom: "10px",
+    height: "40px",
+    background: cBackground,
+    cursor: "pointer",
+
   }
 }))
 
@@ -205,7 +240,68 @@ function ControlChannel({n, model, updateGUI}) {
   )
 }
 
-function Scripts({model, sharedData, updateGUI, classes}) {
+const Examples = () => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Grid
+      container
+      style={{
+        height: "39px",
+        border: `3px solid ${hovered?cHighlight:cTransparent}`,
+
+      }}
+      onPointerOver={()=>{setHovered(true)}}
+      onPointerOut={()=>{setHovered(false)}}
+      onClick={()=>{window.open('https://climbing-mat-e4b.notion.site/Web-PneuMesh-Examples-23cc48c3172849cc95b53ba68cc9d251','_blank').focus()}}
+    >
+      <Grid
+        container
+        xs={4}
+        alignItems={"center"}
+      >
+
+        <ExitToApp
+          style={{height: "30px", width: "30px"}}
+        />
+      </Grid>
+
+      <Grid
+        container
+        xs={8}
+        alignItems={"center"}
+      >
+        <div>Examples</div>
+      </Grid>
+
+    </Grid>
+  )
+}
+
+
+const Help = () => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <Grid
+      style={{
+        height: "30px",
+        width: "30px",
+        border: `3px solid ${hovered?cHighlight:cTransparent}`,
+        padding: "2px",
+      }}
+      onPointerOver={()=>{setHovered(true)}}
+      onPointerOut={()=>{setHovered(false)}}
+      onClick={()=>{window.open('https://climbing-mat-e4b.notion.site/Web-PneuMesh-Tutorial-e1182476d3d34b85b9619df3419c7c40','_blank').focus()}}
+    >
+      <HelpOutline
+        style={{height: "30px", width: "30px"}}
+      />
+    </Grid>
+  )
+}
+
+function TemporalControl({model, sharedData, updateGUI, classes}) {
   model.precompute();
   const widthBlocks = (widthBlock + marginBlock * 2) * model.numActions + paddingBlocks * 2;
 
@@ -219,12 +315,13 @@ function Scripts({model, sharedData, updateGUI, classes}) {
             key={iAction}
             className={classes.scriptBlock}
             style={{
+              cursor: "pointer",
               background: cChannels[iChannel],
               width: `${widthBlock}vh`,
               height: `${heightBlock}vh`,
               padding: `${paddingBlock}vh`,
               margin: `${marginBlock}vh`,
-              border: `2px ${hovered?"solid":"none"} ${cHovered}`,
+              border: `${hovered?"4px":"2px"} solid ${model.iAction===iAction?cHighlight:cHovered}`,
               opacity: `${isOn?1:hovered?0.8:0.1}`
             }}
             onPointerOver={()=>{setHovered(true)}}
@@ -347,28 +444,65 @@ function GUI({model, options, sharedData}) {
         </ListItem>
 
         <Divider/>
+        <Divider/>
 
         <ListItem button selected={model.editing}
                   onClick={(e)=>{
                     model.editing = !model.editing;
-                    sharedData.editingScript = false;
-                    model.simulate = true;
-                    sharedData.movingJoint = false;
-                    sharedData.removingJoint = false;
-                    sharedData.addingJoint = false;
-                    updateGUI();
+
                     if (model.editing) {
-                      // model.resetV();
+                      sharedData.editingScript = false;
+                      model.simulate = false;
+                      model.Model.gravity = false;
+                      sharedData.movingJoint = false;
+                      sharedData.removingJoint = false;
+                      sharedData.addingJoint = false;
+                      model.center();
+                      for (let i=0; i<model.v.length; i++) {
+                        model.vel *= 0;
+                      }
                     }
+                    if (!model.editing) {
+                      sharedData.movingJoint = false;
+                      sharedData.removingJoint = false;
+                      sharedData.addingJoint = false;
+                      model.Model.gravity = true;
+                      model.simulate = true;
+                    }
+
+                    model.controls.current.target = model.centroid();
+
+                    updateGUI();
                     model.forceUpdate();
                   }}>
           <ListItemIcon>
             <ChevronLeft/>
           </ListItemIcon>
           <ListItemText>
-            Edit Shape
+            Edit Shape (E)
           </ListItemText>
         </ListItem>
+
+
+        {/*channel color*/}
+        <ListItem>
+          <ListItemIcon>
+            <Palette/>
+          </ListItemIcon>
+          <ListItemText style={{left: "2px"}}>
+            ChannelColor
+          </ListItemText>
+          <Switch
+            i={1}
+            checked={sharedData.showChannel}
+            onChange={(e)=>{
+              sharedData.showChannel = !sharedData.showChannel;
+              updateGUI();
+            }}
+          />
+        </ListItem>
+
+        <SettingChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>
 
 
         <ListItem>
@@ -400,6 +534,52 @@ function GUI({model, options, sharedData}) {
           />
         </ListItem>
 
+
+
+        {/*fix joints*/}
+        <ListItem>
+          <ListItemText style={{width: "50%"}}>
+            Fix Joints (F/U)
+          </ListItemText>
+          <Grid container style={{width: "50%"}}  spacing={0} alignItems={"center"}>
+            <Grid item key={"fix"} style={{width: "50%" , textAlign: "center"}}>
+
+              <IconButton
+                size={"small"}
+                onClick={(e)=>{
+                  for (let i=0; i<model.v.length; i++) {
+                    if (model.vStatus[i] === 2) model.fixedVs[i] = true;
+                  }
+                  updateGUI();
+                  model.forceUpdate();
+                }}>
+                <Lock/>
+              </IconButton>
+            </Grid>
+
+            <Grid item key={"unfix"} style={{width: "50%" , textAlign: "center"}}>
+              <IconButton
+                size={"small"}
+                onClick={(e)=>{
+                  for (let i=0; i<model.v.length; i++) {
+                    if (model.vStatus[i] === 2) model.fixedVs[i] = false;
+                  }
+                  updateGUI();
+                  model.forceUpdate();
+                }}>
+                <LockOpen/>
+              </IconButton>
+            </Grid>
+          </Grid>
+
+        </ListItem>
+
+
+        <Divider/>
+
+        <SettingActive model={model} updateGUI={updateGUI}/>
+
+
         <ListItem>
           <Typography style={{width: "50%"}}>
             Length
@@ -430,74 +610,37 @@ function GUI({model, options, sharedData}) {
                 }
               }
               onPointerUp={()=>{model.forceUpdate()}}
-
-
             />
         </ListItem>
 
-        <ListItem>
-          <ListItemText style={{width: "50%"}}>
-            Fix Joints
-          </ListItemText>
-          <Grid container style={{width: "50%"}}  spacing={0} alignItems={"center"}>
-          <Grid item key={"fix"} style={{width: "50%" , textAlign: "center"}}>
 
-          <IconButton
-            size={"small"}
-            onClick={(e)=>{
-              for (let i=0; i<model.v.length; i++) {
-                if (model.vStatus[i] === 2) model.fixedVs[i] = true;
-              }
-              updateGUI();
-              model.forceUpdate();
-            }}>
-              <Lock/>
-          </IconButton>
-          </Grid>
 
-            <Grid item key={"unfix"} style={{width: "50%" , textAlign: "center"}}>
-          <IconButton
-            size={"small"}
-            onClick={(e)=>{
-              for (let i=0; i<model.v.length; i++) {
-                if (model.vStatus[i] === 2) model.fixedVs[i] = false;
-              }
-              updateGUI();
-              model.forceUpdate();
-            }}>
-              <LockOpen/>
-          </IconButton>
-          </Grid>
-          </Grid>
 
-        </ListItem>
+        {/*<ListItem button selected={sharedData.editingScript}*/}
+        {/*          onClick={(e)=>{*/}
+        {/*            sharedData.editingScript = !sharedData.editingScript;*/}
+        {/*            model.editing = false;*/}
+        {/*            updateGUI();*/}
+        {/*          }}>*/}
+        {/*  <ListItemIcon>*/}
+        {/*    <ChevronLeft/>*/}
+        {/*  </ListItemIcon>*/}
+        {/*  <ListItemText>*/}
+        {/*    Script & Channel*/}
+        {/*  </ListItemText>*/}
+        {/*</ListItem>*/}
 
-        <SettingActive model={model} updateGUI={updateGUI}/>
-
+        {/*<ControlChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>*/}
 
         <Divider/>
+        <Divider/>
 
-        <ListItem button selected={sharedData.editingScript}
-                  onClick={(e)=>{
-                    sharedData.editingScript = !sharedData.editingScript;
-                    model.editing = false;
-                    updateGUI();
-                  }}>
+
+        {/*graivty*/}
+        <ListItem>
           <ListItemIcon>
-            <ChevronLeft/>
+            <ArrowDownward/>
           </ListItemIcon>
-          <ListItemText>
-            Script & Channel
-          </ListItemText>
-        </ListItem>
-
-        <SettingChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>
-
-        <ControlChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>
-
-        <Divider/>
-
-        <ListItem>
           <ListItemText>
             Gravity
           </ListItemText>
@@ -511,8 +654,11 @@ function GUI({model, options, sharedData}) {
           />
         </ListItem>
 
-
+        {/*simulation*/}
         <ListItem>
+          <ListItemIcon>
+            <Computer/>
+          </ListItemIcon>
           <ListItemText>
             Simulate
           </ListItemText>
@@ -527,21 +673,46 @@ function GUI({model, options, sharedData}) {
         </ListItem>
 
 
+        {/*# of Actions*/}
         <ListItem>
           <Typography style={{width: "50%"}}>
-            Friction
+            # of Actions
           </Typography>
           <Slider
+            key={'numActions'}
             style={{width: "50%"}}
-            defaultValue={model.Model.frictionFactor}
+            defaultValue={model.Model.defaultNumActions}
             aria-labelledby={"discrete-slider-custom"}
-            step={0.1}
-            min={0}
-            max={1}
+            step={1}
+            min={1}
+            max={20}
             valueLabelDisplay={"auto"}
-            // marks={marks}
+            onChange={(e, val)=>{
+              model.numActions = val;
+              model.precompute();
+              updateGUI();
+            }}
           />
         </ListItem>
+
+        <Divider/>
+
+
+        {/*<ListItem>*/}
+        {/*  <Typography style={{width: "50%"}}>*/}
+        {/*    Friction*/}
+        {/*  </Typography>*/}
+        {/*  <Slider*/}
+        {/*    style={{width: "50%"}}*/}
+        {/*    defaultValue={model.Model.frictionFactor}*/}
+        {/*    aria-labelledby={"discrete-slider-custom"}*/}
+        {/*    step={0.1}*/}
+        {/*    min={0}*/}
+        {/*    max={1}*/}
+        {/*    valueLabelDisplay={"auto"}*/}
+        {/*    // marks={marks}*/}
+        {/*  />*/}
+        {/*</ListItem>*/}
 
         <Divider/>
 
@@ -551,7 +722,7 @@ function GUI({model, options, sharedData}) {
                     model.forceUpdate();
                   }}>
           <ListItemIcon>
-            <FilterCenterFocus/>
+            <Visibility/>
           </ListItemIcon>
           <ListItemText>
             Look At Center
@@ -559,33 +730,20 @@ function GUI({model, options, sharedData}) {
         </ListItem>
 
 
-        <ListItem>
-          <ListItemText>
-            Channel Color
-          </ListItemText>
-          <Switch
-            i={1}
-            checked={sharedData.showChannel}
-            onChange={(e)=>{
-              sharedData.showChannel = !sharedData.showChannel;
-              updateGUI();
-            }}
-          />
-        </ListItem>
 
-        <ListItem>
-          <ListItemText>
-            Length Info
-          </ListItemText>
-          <Switch
-            i={2}
-            checked={sharedData.showInfo}
-            onChange={(e)=>{
-              sharedData.showInfo = !sharedData.showInfo;
-              updateGUI();
-            }}
-          />
-        </ListItem>
+        {/*<ListItem>*/}
+        {/*  <ListItemText>*/}
+        {/*    Length Info*/}
+        {/*  </ListItemText>*/}
+        {/*  <Switch*/}
+        {/*    i={2}*/}
+        {/*    checked={sharedData.showInfo}*/}
+        {/*    onChange={(e)=>{*/}
+        {/*      sharedData.showInfo = !sharedData.showInfo;*/}
+        {/*      updateGUI();*/}
+        {/*    }}*/}
+        {/*  />*/}
+        {/*</ListItem>*/}
 
       </List>
     </div>,
@@ -597,60 +755,44 @@ function GUI({model, options, sharedData}) {
          onPointerOut={(e)=>{sharedData.GUIHovered=false}}
     >
         <List>
-          <ListItem>
-            <ListItemText>
-              Add Joint
-            </ListItemText>
-            <Switch
-              key={"add_joint"}
-              checked={sharedData.addingJoint}
-              onChange={(e,val)=>{
-                sharedData.addingJoint = val;
-                if (val) {
-                  sharedData.removingJoint = false;
-                  sharedData.movingJoint = false;
-                }
-                updateGUI();
-              }}
-            />
-          </ListItem>
+          {/*<ListItem>*/}
+          {/*  <ListItemText>*/}
+          {/*    Add Joint*/}
+          {/*  </ListItemText>*/}
+          {/*  <Switch*/}
+          {/*    key={"add_joint"}*/}
+          {/*    checked={sharedData.addingJoint}*/}
+          {/*    onChange={(e,val)=>{*/}
+          {/*      sharedData.addingJoint = val;*/}
+          {/*      if (val) {*/}
+          {/*        sharedData.removingJoint = false;*/}
+          {/*        sharedData.movingJoint = false;*/}
+          {/*      }*/}
+          {/*      updateGUI();*/}
+          {/*    }}*/}
+          {/*  />*/}
+          {/*</ListItem>*/}
 
-          <ListItem>
+          <ListItem button
+                    onClick={(e)=>{
+                      const iJoints = [];
+                      for (let i=0; i<model.v.length; i++) {
+                        if (model.vStatus[i] === 2) iJoints.push(i);
+                      }
+                      if (iJoints.length !== 1) return;
+                      model.addJoint(iJoints[0]);
+                      model.precompute();
+                      model.recordV();
+                      model.forceUpdate();
+                      model.resetSelection();
+                      updateGUI();
+                    }}>
+            <ListItemIcon>
+              <AddCircleOutline />
+            </ListItemIcon>
             <ListItemText>
-              Move Joint
+              Add Joint (A)
             </ListItemText>
-            <Switch
-              key={"add_joint"}
-              checked={sharedData.movingJoint}
-              onChange={(e,val)=>{
-                sharedData.movingJoint = val;
-                if (val) {
-                  sharedData.removingJoint = false;
-                  sharedData.addingJoint = false;
-                }
-                model.simulate = true;
-                model.resetSelection();
-                updateGUI();
-              }}
-            />
-          </ListItem>
-
-          <ListItem>
-            <ListItemText>
-              Remove Joint
-            </ListItemText>
-            <Switch
-              key={"remove_joint"}
-              checked={sharedData.removingJoint}
-              onChange={(e,val)=>{
-                sharedData.removingJoint = val;
-                if (val) {
-                  sharedData.addingJoint = false;
-                  sharedData.movingJoint = false;
-                }
-                updateGUI();
-              }}
-            />
           </ListItem>
 
           <ListItem button
@@ -662,15 +804,118 @@ function GUI({model, options, sharedData}) {
                       model.addEdges(iJoints);
                       model.precompute();
                       model.forceUpdate();
+                      model.resetSelection();
                       updateGUI();
                     }}>
             <ListItemIcon>
-              <SettingsEthernet />
+              <Link />
             </ListItemIcon>
             <ListItemText>
-              Connect Joints
+              Connect Joints (C)
             </ListItemText>
           </ListItem>
+
+          <ListItem button
+                    onClick={(e)=>{
+                      const iJoints = [];
+                      for (let i=0; i<model.v.length; i++) {
+                        if (model.vStatus[i] === 2) iJoints.push(i);
+                      }
+                      model.addTet(iJoints);
+                      model.precompute();
+                      model.forceUpdate();
+                      model.resetSelection();
+                      updateGUI();
+                    }}>
+            <ListItemIcon>
+              <ChangeHistory />
+            </ListItemIcon>
+            <ListItemText>
+              Add Tet (T)
+            </ListItemText>
+          </ListItem>
+
+          <ListItem button
+                    onClick={(e)=>{
+                      const iJoints = [];
+                      for (let i=0; i<model.v.length; i++) {
+                        if (model.vStatus[i] === 2) iJoints.push(i);
+                      }
+                      if (iJoints.length !== 1) return;
+                      model.removeJoint(iJoints[0]);
+                      model.precompute();
+                      model.recordV();
+                      model.forceUpdate();
+                      model.resetSelection();
+                      updateGUI();
+                    }}>
+            <ListItemIcon>
+              <HighlightOff />
+            </ListItemIcon>
+            <ListItemText>
+              Remove Joint (D)
+            </ListItemText>
+          </ListItem>
+
+          <ListItem>
+            <ListItemIcon>
+              <OpenWith />
+            </ListItemIcon>
+            <ListItemText>
+              Move Joint (M)
+            </ListItemText>
+            <Switch
+              key={"add_joint"}
+              checked={sharedData.movingJoint}
+              onChange={(e,val)=>{
+                sharedData.movingJoint = val;
+                if (val) {
+                  sharedData.removingJoint = false;
+                  sharedData.addingJoint = false;
+                }
+                model.simulate = false;
+                model.resetSelection();
+                updateGUI();
+              }}
+            />
+          </ListItem>
+
+
+          <ListItem>
+            <ListItemText>
+              &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Move Body
+            </ListItemText>
+            <Switch
+              disabled={!sharedData.movingJoint}
+              key={"add_joint"}
+              checked={sharedData.movingBody}
+              onChange={(e,val)=>{
+                sharedData.movingBody = val;
+                // model.resetSelection();
+                updateGUI();
+              }}
+            />
+          </ListItem>
+
+
+          {/*<ListItem>*/}
+          {/*  <ListItemText>*/}
+          {/*    Remove Joint*/}
+          {/*  </ListItemText>*/}
+          {/*  <Switch*/}
+          {/*    key={"remove_joint"}*/}
+          {/*    checked={sharedData.removingJoint}*/}
+          {/*    onChange={(e,val)=>{*/}
+          {/*      sharedData.removingJoint = val;*/}
+          {/*      if (val) {*/}
+          {/*        sharedData.addingJoint = false;*/}
+          {/*        sharedData.movingJoint = false;*/}
+          {/*      }*/}
+          {/*      updateGUI();*/}
+          {/*    }}*/}
+          {/*  />*/}
+          {/*</ListItem>*/}
+
 
           <Divider/>
 
@@ -687,12 +932,12 @@ function GUI({model, options, sharedData}) {
               max={Math.PI}
               valueLabelDisplay={"auto"}
               onMouseDown={(e)=>{
-                model.center();
-                model.Model.gravity = false;
+                // model.center();
+                // model.Model.gravity = false;
               }}
               onMouseUp={(e)=>{
-                model.center();
-                model.Model.gravity = true;
+                // model.center();
+                // model.Model.gravity = true;
               }}
               onChange={(e, val)=>{
                 model.rotateTo(val, model.euler.y, model.euler.z);
@@ -715,12 +960,12 @@ function GUI({model, options, sharedData}) {
               max={Math.PI}
               valueLabelDisplay={"auto"}
               onMouseDown={(e)=>{
-                model.center();
-                model.Model.gravity = false;
+                // model.center();
+                // model.Model.gravity = false;
               }}
               onMouseUp={(e)=>{
-                model.center();
-                model.Model.gravity = true;
+                // model.center();
+                // model.Model.gravity = true;
               }}
               onChange={(e, val)=>{
                 model.rotateTo(model.euler.x, val, model.euler.z);
@@ -742,12 +987,12 @@ function GUI({model, options, sharedData}) {
               max={Math.PI}
               valueLabelDisplay={"auto"}
               onMouseDown={(e)=>{
-                model.center();
-                model.Model.gravity = false;
+                // model.center();
+                // model.Model.gravity = false;
               }}
               onMouseUp={(e)=>{
-                model.center();
-                model.Model.gravity = true;
+                // model.center();
+                // model.Model.gravity = true;
               }}
               onChange={(e, val)=>{
                 model.rotateTo(model.euler.x, model.euler.y, val);
@@ -768,7 +1013,7 @@ function GUI({model, options, sharedData}) {
                       updateGUI();
                     }}>
             <ListItemIcon>
-              <AddCircleOutlineRounded />
+              <FilterCenterFocus />
             </ListItemIcon>
             <ListItemText>
               Center Model
@@ -788,23 +1033,23 @@ function GUI({model, options, sharedData}) {
           {/*  </ListItemText>*/}
           {/*</ListItem>*/}
 
-          <ListItem button
-                    onClick={(e)=>{
-                      const iJointsSelected = [];
-                      for (let i=0; i<model.v.length; i++) {
-                        if (model.vStatus[i] === 2) iJointsSelected.push(i);
-                      }
+          {/*<ListItem button*/}
+          {/*          onClick={(e)=>{*/}
+          {/*            const iJointsSelected = [];*/}
+          {/*            for (let i=0; i<model.v.length; i++) {*/}
+          {/*              if (model.vStatus[i] === 2) iJointsSelected.push(i);*/}
+          {/*            }*/}
 
-                      model.align(true, iJointsSelected);
-                      model.forceUpdate();
-                    }}>
-            <ListItemIcon>
-              <VerticalAlignCenter />
-            </ListItemIcon>
-            <ListItemText>
-              Align with X-axis
-            </ListItemText>
-          </ListItem>
+          {/*            model.align(true, iJointsSelected);*/}
+          {/*            model.forceUpdate();*/}
+          {/*          }}>*/}
+          {/*  <ListItemIcon>*/}
+          {/*    <VerticalAlignCenter />*/}
+          {/*  </ListItemIcon>*/}
+          {/*  <ListItemText>*/}
+          {/*    Align with X-axis*/}
+          {/*  </ListItemText>*/}
+          {/*</ListItem>*/}
 
           {/*<ListItem button*/}
           {/*          onClick={(e)=>{*/}
@@ -829,7 +1074,7 @@ function GUI({model, options, sharedData}) {
          onPointerOver={(e)=>{sharedData.GUIHovered=true}}
          onPointerOut={(e)=>{sharedData.GUIHovered=false}}
     >
-      <Scripts model={model} sharedData={sharedData} classes={classes} updateGUI={updateGUI}/>
+      <TemporalControl model={model} sharedData={sharedData} classes={classes} updateGUI={updateGUI}/>
     </div>,
 
 
@@ -889,8 +1134,16 @@ function GUI({model, options, sharedData}) {
         </Grid>
       </Grid>
 
-    </div>
+    </div>,
 
+
+    <div key={"examples"} className={classes.examples} >
+      <Examples/>
+    </div>,
+
+    <div key={"help"} className={classes.help} >
+      <Help/>
+    </div>
 
   ]
   )
