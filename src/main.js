@@ -214,8 +214,8 @@ fetch(initFileDir).then(r => r.text()).then(t =>{
 })
 
 
-
 function Main() {
+  console.log(model);
   return (
     [
       <Viewer key={'viewer'} model={model} sharedData={sharedData}/>,

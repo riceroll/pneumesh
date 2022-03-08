@@ -2,12 +2,14 @@ import logo from './logo.svg';
 import './style.css';
 import React, {useRef, useState, useMemo, useEffect, useReducer} from 'react'
 import * as THREE from 'three'
-import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from 'react-three-fiber'
+import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from '@react-three/fiber'
 
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import {TransformControls, Stats} from "drei";
+import {TransformControls, Stats} from '@react-three/drei';
+import  {OrbitControls}  from '@react-three/drei';
+
+
 // import { EffectComposer, Outline } from 'react-postprocessing'
-extend({OrbitControls})
+// extend({OrbitControls})
 
 const cWhite = new THREE.Color(0.6, 0.6, 0.6);
 const cChannels = [
@@ -306,7 +308,12 @@ function Beam({v0, v1, ie, model, sharedData
       cJoint.copy(cBlack);
     }
   }
-  changeColor();
+  try {
+    changeColor();
+  }
+  catch (error) {
+    console.log('error: changeColor');
+  }
 
   useFrame((state)=>{
     let vec = v1.clone().sub(v0);
@@ -567,7 +574,7 @@ const Controls = ({oControls}) => {
   /* Invoke the OrbitControls' update function on every frame */
   useFrame(() => oControls.current.update())
 
-  return <orbitControls ref={oControls} args={[camera, domElement]}/>
+  return <OrbitControls ref={oControls} args={[camera, domElement]}/>
 }
 
 function Viewer({model, sharedData}) {
@@ -623,7 +630,7 @@ function Viewer({model, sharedData}) {
           args={[100, 100]}
           rotation-x={-Math.PI/2}
           position-z={0}
-          visible={true}
+          visible={false}
         />
 
         <PneuMesh model={model} sharedData={sharedData} setOControls={setOControls}/>

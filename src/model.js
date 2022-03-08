@@ -98,6 +98,7 @@ class Model {
     this.Edge = Edge;
     this.Model = Model;
     this.controls = null;
+    this.forceUpdate = null;
     this.sharedData = null;
 
     Model.configure();

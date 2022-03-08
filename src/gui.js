@@ -3,7 +3,6 @@ import React, {useRef, useState, useMemo, useReducer} from 'react'
 import {makeStyles, Grid, List, ListItem, ListItemIcon, ListItemText, Divider,
         Icon, Slider, Switch, Typography, IconButton}
         from '@material-ui/core'
-import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from 'react-three-fiber'
 import {
   AccessAlarm, Publish, GetApp, ChevronLeft, ExitToApp, Edit, GpsFixed, GpsNotFixed,
   RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus, AddCircleOutlineRounded, VerticalAlignCenter,
