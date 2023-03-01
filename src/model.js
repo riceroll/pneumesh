@@ -63,6 +63,7 @@ class Model {
       Model.defaultMinLength = data.defaultMinLength;
       Model.defaultMaxLength = Model.defaultMinLength / (1 - Model.maxMaxContraction);
       Model.frictionFactor = data.frictionFactor;
+      Model.directionalFriction = data.directionalFriction;
       Model.numStepsAction = data.numStepsActionMultiplier / Model.h;
       Model.defaultNumActions = data.defaultNumActions;
       Model.defaultNumChannels = data.defaultNumChannels;
@@ -142,9 +143,12 @@ class Model {
     // status
     this.editing = false;
     this.simulate = true;
+    this.record = false;
     Model.gravity = true;
     this.directional = false;
     this.euler = new thre.Euler(0, 0, 0);
+
+    this.v_frames = [];   // vertices of each frame when this.recording is True
 
     // channel status
     this.numChannels = Model.defaultNumChannels;
@@ -253,6 +257,8 @@ class Model {
     data.inflateChannel = this.inflateChannel.slice();
     data.contractionPercent = this.contractionPercent.slice();
 
+    data.v_frames = this.v_frames;
+
     return data;
   }
 
@@ -305,6 +311,7 @@ class Model {
     let grav = this.Model.gravity;
     this.loadDict(data);
     this.simulate = sim;
+    this.record = false;
     this.Model.gravity = grav;
     this.forceUpdate();
     return;
@@ -590,6 +597,8 @@ class Model {
 
   step(n=1, scripting = true) {
 
+    this.recordFrames();
+
     for (let iStep=0; iStep<n; iStep++) {
       this.precompute();
       if (!this.simulate) {return}
@@ -629,8 +638,26 @@ class Model {
         this.vel[i].add(this.f[i].clone().multiplyScalar(Model.h));
 
         if (this.v[i].z <= 0) {
-          this.vel[i].x *= (1 - Model.frictionFactor);
+
+          if (Model.directionalFriction) {
+            if (this.vel[i].x > 0) {
+              this.vel[i].x *= (1 - Model.frictionFactor);
+            }
+            else {
+              this.vel[i].x *= (1 - Model.frictionFactor);
+            }
+          }
+          else {
+            this.vel[i].x *= (1 - Model.frictionFactor);
+          }
+
+          // if (!Model.directionalFriction) {
           this.vel[i].y *= (1 - Model.frictionFactor);
+          // }
+          // else {
+          //   this.vel[i].y *= 0;
+          // }
+
         }
 
         this.vel[i].multiplyScalar(Model.dampingRatio);   // damping
@@ -791,7 +818,6 @@ class Model {
     }
   }
 
-
   removeJoint(iJoint) {
     if ([0,1,2,3].includes(iJoint)) return;
 
@@ -818,6 +844,24 @@ class Model {
 
   removeEdge(iEdge) {
 
+  }
+
+  recordFrames() {
+    if (!this.record) return 0;
+
+    console.log('record');
+
+    let v_frame = [];
+    for (let v of this.v) {
+      v_frame.push([v.x, v.y, v.z]);
+    }
+
+    this.v_frames.push(v_frame);
+  }
+
+  resetRecording() {
+    console.log('reset_recording')
+    this.v_frames = [];
   }
 
   // update the model variables to data structures
@@ -975,8 +1019,8 @@ class Model {
 
     let center = this.centroid();
     let eulerInverse = new thre.Euler();
-    eulerInverse.setFromVector3(this.euler.toVector3().negate(), 'ZYX');
-    this.euler =new thre.Euler(x, y, z);
+    eulerInverse.setFromVector3((new thre.Vector3()).setFromEuler(this.euler).negate(), 'ZYX');
+    this.euler = new thre.Euler(x, y, z);
 
     for (let i=0; i<this.v.length; i++) {
       this.v[i].sub(center);

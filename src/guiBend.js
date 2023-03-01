@@ -7,8 +7,10 @@ import {
   AccessAlarm, Publish, GetApp, ChevronLeft, ExitToApp, Edit, GpsFixed, GpsNotFixed,
   RadioButtonChecked, RadioButtonUnchecked, FilterCenterFocus, AddCircleOutlineRounded, VerticalAlignCenter,
   SettingsEthernet, WbSunny, FiberManualRecord, Lock, LockOpen, AddCircleOutline, ChangeHistory, HighlightOff,
-  Link, LinkOff, Visibility, OpenWith, ColorLens, Palette, ArrowDownward, Comment, Computer, HelpOutline
+  Link, LinkOff, Visibility, OpenWith, ColorLens, Palette, ArrowDownward, Comment, Computer, HelpOutline, CloudUpload,
+  FormatShapes, SelectAll, ViewColumn, ThreeDRotation, UnfoldMore
 } from "@material-ui/icons";
+import {Circle} from "@react-three/drei";
 
 const cBackground = "rgba(200, 200, 200, 0.6)";
 const cTransparent = "rgba(200, 200, 200, 0.0)";
@@ -422,99 +424,68 @@ function GUI({model, options, sharedData}) {
          onPointerOut={(e)=>{sharedData.GUIHovered=false}}
     >
       <List>
-        <ListItem button
-                  onClick={save}>
+        <ListItem button>
           <ListItemIcon>
-            <GetApp/>
+            <CloudUpload/>
           </ListItemIcon>
           <ListItemText>
-            Download
+            Upload Material
           </ListItemText>
         </ListItem>
 
-        <ListItem button selected={false}
-                  onClick={load}>
-          <ListItemIcon>
-            <Publish/>
-          </ListItemIcon>
-          <ListItemText>
-            Load
-          </ListItemText>
-        </ListItem>
 
         <Divider/>
         <Divider/>
 
-        <ListItem button selected={model.editing}
-                  onClick={(e)=>{
-                    model.editing = !model.editing;
 
-                    if (model.editing) {
-                      sharedData.editingScript = false;
-                      model.simulate = false;
-                      model.Model.gravity = false;
-                      sharedData.movingJoint = false;
-                      sharedData.removingJoint = false;
-                      sharedData.addingJoint = false;
-                      model.center();
-                      for (let i=0; i<model.v.length; i++) {
-                        model.vel *= 0;
-                      }
-                    }
-                    if (!model.editing) {
-                      sharedData.movingJoint = false;
-                      sharedData.removingJoint = false;
-                      sharedData.addingJoint = false;
-                      model.Model.gravity = true;
-                      model.simulate = true;
-                    }
-
-                    model.controls.current.target = model.centroid();
-
-                    updateGUI();
-                    model.forceUpdate();
-                  }}>
+        <ListItem button>
           <ListItemIcon>
-            <ChevronLeft/>
+            <FormatShapes/>
           </ListItemIcon>
           <ListItemText>
-            Edit Shape (E)
+            Draw Outline
           </ListItemText>
         </ListItem>
 
+        <Divider/>
 
-        {/*channel color*/}
+        <ListItem button>
+          <ListItemIcon>
+            <SettingsEthernet/>
+          </ListItemIcon>
+          <ListItemText>
+            Crop Region
+          </ListItemText>
+        </ListItem>
+
+        <Divider/>
+
+        <ListItem button>
+          <ListItemIcon>
+            <SelectAll/>
+          </ListItemIcon>
+          <ListItemText>
+            Select Region
+          </ListItemText>
+        </ListItem>
+
+        <Divider/>
+
         <ListItem>
           <ListItemIcon>
-            <Palette/>
+            <ViewColumn/>
           </ListItemIcon>
-          <ListItemText style={{left: "2px"}}>
-            ChannelColor
-          </ListItemText>
-          <Switch
-            i={1}
-            checked={sharedData.showChannel}
-            onChange={(e)=>{
-              sharedData.showChannel = !sharedData.showChannel;
-              updateGUI();
-            }}
-          />
-        </ListItem>
-
-        <SettingChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>
-
-
-        <ListItem>
           <Typography style={{width: "50%"}}>
-            Contraction
+            Gap Size
           </Typography>
+        </ListItem>
+
+        <Divider/>
+
+        <ListItem>
           <Slider
             style={{width: "50%"}}
-            disabled={
-             model.eStatus.includes(2) ?
-               ![...Array(model.e.length).keys()].every(ie=>(
-                 (model.eStatus[ie]===2 && model.edgeActive[ie]) || (model.eStatus[ie] !==2))) :
-                 true
+            disabled={false
             }
             defaultValue={model.Model.maxMaxContraction}
             aria-labelledby={"discrete-slider-custom"}
@@ -533,241 +504,50 @@ function GUI({model, options, sharedData}) {
           />
         </ListItem>
 
-
-
-        {/*fix joints*/}
-        <ListItem>
-          <ListItemText style={{width: "50%"}}>
-            Fix Joints (F/U)
-          </ListItemText>
-          <Grid container style={{width: "50%"}}  spacing={0} alignItems={"center"}>
-            <Grid item key={"fix"} style={{width: "50%" , textAlign: "center"}}>
-
-              <IconButton
-                size={"small"}
-                onClick={(e)=>{
-                  for (let i=0; i<model.v.length; i++) {
-                    if (model.vStatus[i] === 2) model.fixedVs[i] = true;
-                  }
-                  updateGUI();
-                  model.forceUpdate();
-                }}>
-                <Lock/>
-              </IconButton>
-            </Grid>
-
-            <Grid item key={"unfix"} style={{width: "50%" , textAlign: "center"}}>
-              <IconButton
-                size={"small"}
-                onClick={(e)=>{
-                  for (let i=0; i<model.v.length; i++) {
-                    if (model.vStatus[i] === 2) model.fixedVs[i] = false;
-                  }
-                  updateGUI();
-                  model.forceUpdate();
-                }}>
-                <LockOpen/>
-              </IconButton>
-            </Grid>
-          </Grid>
-
-        </ListItem>
-
-
+        <Divider/>
         <Divider/>
 
-        <SettingActive model={model} updateGUI={updateGUI}/>
-
-
         <ListItem>
+          <ListItemIcon>
+            <ThreeDRotation/>
+          </ListItemIcon>
           <Typography style={{width: "50%"}}>
-            Length
+            Load 3D Geometry
           </Typography>
-            <Slider
-              style={{width: "50%"}}
-              disabled={
-                model.eStatus.includes(2) ?
-                  ![...Array(model.e.length).keys()].every(ie=>(
-                    (model.eStatus[ie]===2 && !model.edgeActive[ie]) || (model.eStatus[ie] !==2))) :
-                  true
-              }
-              defaultValue={model.Model.defaultMinLength}
-              aria-labelledby={"discrete-slider-custom"}
-              step={model.Model.contractionInterval * model.Model.defaultMaxLength}
-              min={model.Model.defaultMinLength}
-              max={model.Model.defaultMaxLength}
-              valueLabelDisplay={"auto"}
-              // marks={marks}
-              onChange={
-                (e, val)=>{
-                  for (let i=0; i<model.e.length; i++) {
-                    if (model.eStatus[i] === 2 && model.edgeActive[i] === false) {
-                      model.lMax[i] = val;
-                    }
-                  }
-                  model.forceUpdate();
-                }
-              }
-              onPointerUp={()=>{model.forceUpdate()}}
-            />
         </ListItem>
 
-
-
-
-        {/*<ListItem button selected={sharedData.editingScript}*/}
-        {/*          onClick={(e)=>{*/}
-        {/*            sharedData.editingScript = !sharedData.editingScript;*/}
-        {/*            model.editing = false;*/}
-        {/*            updateGUI();*/}
-        {/*          }}>*/}
-        {/*  <ListItemIcon>*/}
-        {/*    <ChevronLeft/>*/}
-        {/*  </ListItemIcon>*/}
-        {/*  <ListItemText>*/}
-        {/*    Script & Channel*/}
-        {/*  </ListItemText>*/}
-        {/*</ListItem>*/}
-
-        {/*<ControlChannel n={model.numChannels} model={model} updateGUI={updateGUI}/>*/}
-
-        <Divider/>
         <Divider/>
 
+        <ListItem>
+          <ListItemIcon>
+            <UnfoldMore/>
+          </ListItemIcon>
+          <Typography style={{width: "50%"}}>
+            Adjust Geometry
+          </Typography>
+        </ListItem>
 
-        {/*graivty*/}
+        <Divider/>
+
         <ListItem>
           <ListItemIcon>
             <ArrowDownward/>
           </ListItemIcon>
-          <ListItemText>
-            Gravity
-          </ListItemText>
-          <Switch
-            i={0}
-            checked={model.Model.gravity}
-            onChange={(e)=>{
-              model.Model.gravity = !model.Model.gravity;
-              updateGUI();
-            }}
-          />
-        </ListItem>
-
-        {/*simulation*/}
-        <ListItem>
-          <ListItemIcon>
-            <Computer/>
-          </ListItemIcon>
-          <ListItemText>
-            Simulate
-          </ListItemText>
-          <Switch
-            i={0}
-            checked={model.simulate}
-            onChange={(e)=>{
-              model.simulate = !model.simulate;
-              if (!model.simulate) {
-                model.record = false;
-              }
-              updateGUI();
-            }}
-          />
-        </ListItem>
-
-
-        <ListItem>
-          <ListItemIcon>
-            <Computer/>
-          </ListItemIcon>
-          <ListItemText>
-            Record
-          </ListItemText>
-          <Switch
-            i={0}
-            checked={model.record}
-            onChange={(e)=>{
-              model.record = !model.record;
-              if (model.record) {
-                model.simulate = true;
-                model.resetRecording();
-              }
-              updateGUI();
-            }}
-          />
-        </ListItem>
-
-
-        {/*# of Actions*/}
-        <ListItem>
           <Typography style={{width: "50%"}}>
-            # of Actions
+            Flatten
           </Typography>
-          <Slider
-            key={'numActions'}
-            style={{width: "50%"}}
-            defaultValue={model.Model.defaultNumActions}
-            aria-labelledby={"discrete-slider-custom"}
-            step={1}
-            min={1}
-            max={20}
-            valueLabelDisplay={"auto"}
-            onChange={(e, val)=>{
-              model.numActions = val;
-              model.precompute();
-              updateGUI();
-            }}
-          />
         </ListItem>
 
         <Divider/>
 
-
-        {/*<ListItem>*/}
-        {/*  <Typography style={{width: "50%"}}>*/}
-        {/*    Friction*/}
-        {/*  </Typography>*/}
-        {/*  <Slider*/}
-        {/*    style={{width: "50%"}}*/}
-        {/*    defaultValue={model.Model.frictionFactor}*/}
-        {/*    aria-labelledby={"discrete-slider-custom"}*/}
-        {/*    step={0.1}*/}
-        {/*    min={0}*/}
-        {/*    max={1}*/}
-        {/*    valueLabelDisplay={"auto"}*/}
-        {/*    // marks={marks}*/}
-        {/*  />*/}
-        {/*</ListItem>*/}
-
-        <Divider/>
-
-        <ListItem button
-                  onClick={(e)=>{
-                    model.controls.current.target = model.centroid();
-                    model.forceUpdate();
-                  }}>
+        <ListItem>
           <ListItemIcon>
-            <Visibility/>
+            <ExitToApp/>
           </ListItemIcon>
-          <ListItemText>
-            Look At Center
-          </ListItemText>
+          <Typography style={{width: "50%"}}>
+            Export
+          </Typography>
         </ListItem>
-
-
-
-        {/*<ListItem>*/}
-        {/*  <ListItemText>*/}
-        {/*    Length Info*/}
-        {/*  </ListItemText>*/}
-        {/*  <Switch*/}
-        {/*    i={2}*/}
-        {/*    checked={sharedData.showInfo}*/}
-        {/*    onChange={(e)=>{*/}
-        {/*      sharedData.showInfo = !sharedData.showInfo;*/}
-        {/*      updateGUI();*/}
-        {/*    }}*/}
-        {/*  />*/}
-        {/*</ListItem>*/}
 
       </List>
     </div>,

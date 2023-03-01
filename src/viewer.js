@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import './style.css';
 import React, {useRef, useState, useMemo, useEffect, useReducer} from 'react'
-import * as THREE from 'three'
+import  * as THREE from 'three'
 import { extend, Canvas, useFrame, useThree, useResource, useUpdate } from '@react-three/fiber'
 
 import {TransformControls, Stats} from '@react-three/drei';
@@ -17,9 +17,14 @@ const cChannels = [
   new THREE.Color(0.5, 0.4, 0.1),
   new THREE.Color(0.5, 0.1, 0.5),
   new THREE.Color(0.1, 0.5, 0.2),
-  new THREE.Color(0.6, 0.1, 0.4),
+  new THREE.Color(0.6, 0.2, 0.4),
+  new THREE.Color(0.2, 0.6, 0.4),
+  new THREE.Color(0.4, 0.6, 0.2),
+  new THREE.Color(0.6, 0.6, 0.2),
+  new THREE.Color(0.2, 0.6, 0.6)
 ];
 const cPureWhite = new THREE.Color(1, 1, 1);
+const cFloor = new THREE.Color(0.9, 0.9, 0.9);
 const cBlack = new THREE.Color(0.05, 0.05, 0.05);
 const cSelected = new THREE.Color(0.9, 0.0, 0.0);
 const cHovered = new THREE.Color(0.9, 0.05, 0.0);
@@ -37,7 +42,7 @@ const fps = 30;
 const viewChannel = false;
 window.fps = fps;
 
-function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut, setOControls, translating}) {
+function Ball({v, d, iv, c, model, handleClick, handlePointerOver, handlePointerOut, setOControls, translating}) {
 
   const mesh=useRef();
   const material = useRef();
@@ -45,56 +50,125 @@ function Ball({v, d, c, model, handleClick, handlePointerOver, handlePointerOut,
   const [dragging, setDragging] = useState(false);
   const prevPos = new THREE.Vector3();
 
+  let drag = false;
+
   useFrame((state)=>{
 
     if (mesh.current === null)  return;
+    // mesh.current.position.copy(v);
+    // console.log(transControls.current);
 
-    mesh.current.position.copy(v);
+    // mesh.current.position.copy(v);
     material.current.color.copy(c);
+    // transControls.current.position.multiplyScalar(0);
+
 
 
     if (translating) {
-      const controls = transControls.current;
-      if (dragging)  {
-        v.copy(controls.worldPosition.clone().add(controls.position));
-        mesh.current.position.copy(v);
+      // console.log(mesh.current);
+      mesh.current.position.multiplyScalar(0);
+    //   const controls = transControls.current;
+      // if (dragging)  {
+      //   v.copy(controls.worldPosition.clone().add(controls.position));
+      //   mesh.current.position.copy(v);
+      // }
+      // else {
+      //   transControls.current.position.copy(v);
+      // }
+
+      if (drag) {
+      //   model.v[iv].copy(transControls.current.position.add(transControls.current.WorldPosition).sub(transControls.current.WorldPositionStart));
+      //   console.log(transControls.current.position);
+      //   console.log(transControls.current.worldPosition);
+      //   console.log(transControls.current.worldPositionStart);
+      //
+        model.v[iv].copy(transControls.current.object.position);
+        setOControls(false);
+        model.simulate=true;
       }
       else {
-        transControls.current.position.copy(v);
+      //   transControls.current.position.copy(v);
+      //
+        transControls.current.object.position.copy(model.v[iv]);
+        setOControls(true);
       }
     }
+    else {
+
+      transControls.current.object.position.copy(model.v[iv]);
+      mesh.current.position.multiplyScalar(0);
+    }
   });
+
+  // useEffect(()=>{
+  //   const callbackDraggingChanged = (e) => {
+  //     setOControls(!e.value);
+  //     setDragging(e.value);
+  //
+  //     const controls = e.target;
+  //     if (e.value ===false) {
+  //       controls.object.position.multiplyScalar(0);
+  //       model.simulate=true;
+  //       model.recordHistory();
+  //     }
+  //     else {
+  //       // model.simulate=false;
+  //       prevPos.copy(controls.worldPosition);
+  //     }
+  //   }
+  //
+  //   const controls = transControls.current;
+  //   controls.position.copy(v);
+  //   if (controls) {
+  //     controls.addEventListener('dragging-changed', callbackDraggingChanged);
+  //     return () => {
+  //       controls.removeEventListener('dragging-changed', callbackDraggingChanged);
+  //     }
+  //   }
+  // })
 
   useEffect(()=>{
     const callbackDraggingChanged = (e) => {
       setOControls(!e.value);
-      setDragging(e.value);
+      // console.log(transControls.current);
+      // setDragging(e.value);
+      drag = e.value;
 
-      const controls = e.target;
-      if (e.value ===false) {
-        controls.object.position.multiplyScalar(0);
-        model.simulate=true;
-        model.recordHistory();
-      }
-      else {
-        // model.simulate=false;
-        prevPos.copy(controls.worldPosition);
-      }
+
+      // model.v[iv] = e.target.object.WorldPosition;
+      // console.log(transControls.current.position);
+
+
+
+      // const controls = e.target;
+      // if (e.value ===false) {
+      // controls.object.position.multiplyScalar(0);
+
+      // console.log(e.target);
+      //   model.recordHistory();
+      // }
+      // else {
+      //   // model.simulate=false;
+      //   prevPos.copy(controls.worldPosition);
+      // }
     }
-
-    const controls = transControls.current;
-    controls.position.copy(v);
-    if (controls) {
+    if (transControls.current) {
+      const controls = transControls.current;
+      window.tran = controls;
+      // controls.position.copy(v);
+      // if (controls) {
       controls.addEventListener('dragging-changed', callbackDraggingChanged);
       return () => {
         controls.removeEventListener('dragging-changed', callbackDraggingChanged);
       }
     }
+    // }
   })
 
   return(
     <TransformControls
       ref={transControls}
+      // position={v}
       enabled={translating}
       showX={translating}
       showY={translating}
@@ -185,7 +259,7 @@ function Joint({v, iv, model, setOControls, sharedData}) {
   }
 
   return(
-    <Ball key={"ball"} v={v} d={dJoint}
+    <Ball key={"ball"} v={v} d={dJoint} iv={iv}
           model={model}
           handleClick={handleClick}
           handlePointerOver={handlePointerOver}
@@ -485,6 +559,7 @@ function PneuMesh({
 }) {
 
   const [clock] = React.useState(new THREE.Clock());
+
   useFrame((state)=>{
     const timeUntilNextFrame = (1000 / fps) - clock.getDelta();
     setTimeout(()=>
@@ -550,18 +625,19 @@ function PneuMesh({
 
 
 function DLight() {
-  const light = new THREE.DirectionalLight(new THREE.Color(1,1,1), 1.5);
-  light.position.set(0, 0, 5);
+  const light = new THREE.DirectionalLight(new THREE.Color(1,1,1), 1.0);
+  light.position.set(0, 0, 100);
+  light.target.position.set(0, 0, -100);
   light.castShadow = true;
-  let mapSize = 30
+  let mapSize = 100;
   light.shadow.mapSize.width = 20 * mapSize;
   light.shadow.mapSize.height = 20 * mapSize;
   light.shadow.camera.top = -3 * mapSize;
   light.shadow.camera.right = 3 * mapSize;
   light.shadow.camera.left = -3 * mapSize;
   light.shadow.camera.bottom = 3 * mapSize;
-  light.shadow.camera.near = 0.1;
-  light.shadow.camera.far = 500;
+  // light.shadow.camera.near = 0.1;
+  // light.shadow.camera.far = 500;
   return (<primitive object={light}/>)
 }
 
@@ -574,7 +650,7 @@ const Controls = ({oControls}) => {
   /* Invoke the OrbitControls' update function on every frame */
   useFrame(() => oControls.current.update())
 
-  return <OrbitControls ref={oControls} args={[camera, domElement]}/>
+  return <OrbitControls enableDamping={false} ref={oControls} args={[camera, domElement]}/>
 }
 
 function Viewer({model, sharedData}) {
@@ -618,19 +694,29 @@ function Viewer({model, sharedData}) {
         <DLight/>
 
         <mesh
-          position={[0, 0, 0]}
+          position={[0, 0, 0- dJoint / 2]}
           receiveShadow={true}
           visible={true}
         >
           <planeGeometry args={[10000, 10000]}/>
-          <shadowMaterial opacity={0.3}/>
+          <shadowMaterial opacity={0.4} transparent={true}/>
+        </mesh>
+
+
+        <mesh
+          position={[0, 0, -0.01 - dJoint / 2]}
+          receiveShadow={true}
+          visible={true}
+        >
+          <planeGeometry args={[10000, 10000]}/>
+          <meshLambertMaterial opacity={0.5} color={cFloor} transparent={true} side={THREE.DoubleSide}/>
         </mesh>
 
         <gridHelper
-          args={[100, 100]}
+          args={[30, 30]}
           rotation-x={-Math.PI/2}
           position-z={0}
-          visible={false}
+          visible={true}
         />
 
         <PneuMesh model={model} sharedData={sharedData} setOControls={setOControls}/>

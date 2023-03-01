@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import Main from './main';
-import GUI from './gui';
+import GUI from './guiBend';
 import reportWebVitals from './reportWebVitals';
 
 let root = document.getElementById('root');
