@@ -881,6 +881,25 @@ function GUI({model, options, sharedData}) {
             </ListItemText>
           </ListItem>
 
+
+          <ListItem button
+                    onClick={(e)=>{
+                      model.removeEdge();
+                      model.precompute();
+                      model.recordV();
+                      model.forceUpdate();
+                      model.resetSelection();
+                      updateGUI();
+                    }}>
+            <ListItemIcon>
+              <HighlightOff />
+            </ListItemIcon>
+            <ListItemText>
+              Remove Beam (R)
+            </ListItemText>
+          </ListItem>
+
+
           <ListItem>
             <ListItemIcon>
               <OpenWith />

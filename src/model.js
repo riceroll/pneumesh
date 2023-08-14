@@ -842,7 +842,55 @@ class Model {
     this.forceUpdate();
   }
 
-  removeEdge(iEdge) {
+  removeBeam(iJoint) {
+    if ([0,1,2,3].includes(iJoint)) return;
+
+    this.updateDataStructure();
+
+    const ees = [];   // edges to remove
+
+    const v = Vertex.all[iJoint];
+    for (let ee of v.es) {
+      ees.push(ee);
+    }
+
+    Vertex.all = Vertex.all.filter(vv=>vv !== v);
+    Edge.all = Edge.all.filter(ee=>!ees.includes(ee));
+
+    Model.reindexObjects(Vertex)
+    Model.reindexObjects(Edge)
+
+    this.updateFromDataStructure();
+    this.updateCorners();
+
+    this.forceUpdate();
+  }
+
+  removeEdge() {
+
+    this.updateDataStructure();
+
+    let ees = [];   // edges to remove
+
+    // const v = Vertex.all[iJoint];
+    for (let i=0; i<this.e.length; i++) {
+      if (this.eStatus[i] === 2) {
+        console.log(i);
+        ees.push(Edge.all[i]);
+      }
+    }
+
+    // Vertex.all = Vertex.all.filter(vv=>vv !== v);
+    Edge.all = Edge.all.filter(ee=>!ees.includes(ee));
+    console.log(Edge.all);
+
+    Model.reindexObjects(Vertex)
+    Model.reindexObjects(Edge)
+
+    this.updateFromDataStructure();
+    this.updateCorners();
+
+    this.forceUpdate();
 
   }
 
